@@ -8,7 +8,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN sed -i 's/deb.debian.org/archive.debian.org/g' /etc/apt/sources.list && \
     sed -i 's/security.debian.org/archive.debian.org/g' /etc/apt/sources.list && \
     apt-get update && \
-    apt-get install -y --no-install-recommends git curl build-essential && \
+    apt-get install -y --no-install-recommends git curl openssh-client build-essential && \
     pip install poetry && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
