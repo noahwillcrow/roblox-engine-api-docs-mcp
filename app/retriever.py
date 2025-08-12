@@ -4,8 +4,8 @@ from qdrant_client import QdrantClient
 from llama_index.vector_stores.qdrant import QdrantVectorStore
 from llama_index.core import VectorStoreIndex
 from llama_index.embeddings.fastembed import FastEmbedEmbedding
-from llama_index.llms.openai import OpenAI
 from llama_index.core.query_engine import RetrieverQueryEngine
+from llama_index.postprocessor.colbert_rerank import ColbertRerank
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -28,14 +28,21 @@ def get_retriever():
         embed_model=FastEmbedEmbedding(model_name="BAAI/bge-small-en-v1.5"),
     )
     
-    # Initialize OpenAI LLM
-    llm = OpenAI(model="gpt-3.5-turbo", api_key=os.getenv("OPENAI_API_KEY"))
+
+    # Initialize local reranker
+    local_rerank = ColbertRerank(
+        top_n=5,
+        model="colbertv2",  # Using a pre-trained ColbertV2 model
+        tokenizer="colbertv2",
+        keep_retrieved=True,
+    )
 
     # Create a query engine that directly returns nodes
     query_engine = index.as_query_engine(
-        similarity_top_k=5,
-        response_mode="no_text", # This ensures only source nodes are returned
+        similarity_top_k=10, # Retrieve more documents for the reranker
+        response_mode="no_text",  # This ensures only source nodes are returned
+        node_postprocessors=[local_rerank],
     )
     
-    logger.info("Successfully initialized retriever engine.")
+    logger.info("Successfully initialized retriever engine with local reranker.")
     return query_engine

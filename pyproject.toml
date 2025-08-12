@@ -17,6 +17,9 @@ scrapy = "^2.11.2"
 pydantic = "^2.7.4"
 httpx = "^0.28.1"
 crochet = "^2.1.1"
+beautifulsoup4 = "^4.12.3"
+llama-index-llms-openai = "^0.1.5"
+llama-index-postprocessor-colbert-rerank = "^0.1.1"
 
 [build-system]
 requires = ["poetry-core"]
