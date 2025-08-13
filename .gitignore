@@ -106,3 +106,5 @@ poetry.lock
 # IDEs
 .idea/
 .vscode/
+# Qdrant data
+qdrant_data/
