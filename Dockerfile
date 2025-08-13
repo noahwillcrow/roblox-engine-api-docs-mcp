@@ -4,9 +4,10 @@ FROM python:3.11-slim as base
 
 ENV PYTHONUNBUFFERED=1 \
     POETRY_NO_INTERACTION=1 \
-    POETRY_VIRTUALENVS_CREATE=false \
+    POETRY_VIRTUALENVS_CREATE=true \
     POETRY_HOME="/opt/poetry" \
-    PATH="/opt/poetry/bin:$PATH"
+    PATH="/opt/poetry/bin:$PATH" \
+    PYTHONPATH="/app/src:$PYTHONPATH"
 
 # Install poetry
 RUN apt-get update && apt-get install -y curl && \
