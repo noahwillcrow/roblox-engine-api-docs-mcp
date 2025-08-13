@@ -24,7 +24,7 @@ RUN apt-get update && apt-get install -y build-essential git && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml ./
-RUN poetry install --no-root --no-lock
+RUN poetry install --no-root
 
 # --- Stage 3: Ingester ---
 # This stage runs the slow data ingestion process. It's cached as long as the ingestion code doesn't change.
