@@ -32,7 +32,7 @@ FROM builder as ingester
 
 WORKDIR /app
 
-COPY ./src/roblox_api_rag/ingestion ./src/roblox_api_rag/ingestion
+COPY ./src /app/src
 
 # Set the data path for the Qdrant database
 ENV QDRANT_DATA_PATH="/app/qdrant_data"
