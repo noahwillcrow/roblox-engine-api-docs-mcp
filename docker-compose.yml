@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount the source code for hot-reloading
+      - ./src:/app/src
+      # Persist the Qdrant database on the host machine
+      - qdrant_data:/app/qdrant_data
+    environment:
+      - QDRANT_DATA_PATH=/app/qdrant_data
+      - COLLECTION_NAME=roblox_api
+    command: uvicorn roblox_api_rag.main:app --host 0.0.0.0 --port 8000 --reload
+
+  ingestion:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./src:/app/src
+      - qdrant_data:/app/qdrant_data
+    environment:
+      - QDRANT_DATA_PATH=/app/qdrant_data
+      - COLLECTION_NAME=roblox_api
+    command: python src/roblox_api_rag/ingestion/main.py
+
+volumes:
+  qdrant_data:
