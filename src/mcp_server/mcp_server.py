@@ -62,7 +62,6 @@ class DataTypesAndClassesResponse(BaseModel):
 
 @mcp_server.resource("resource://roblox/engine-reference/query/{text}")
 async def roblox_engine_api_docs(
-    ctx: Context[ServerSession, AppContext], # Inject context for logging/progress and app resources
     text: str,
 ) -> QueryResponse:
     """
@@ -72,13 +71,11 @@ async def roblox_engine_api_docs(
     top_k = 5
     filters = None
 
-    if ctx:
-        await ctx.info(f"Received query for: '{text}' with top_k={top_k}")
+    print(f"Received query for: '{text}' with top_k={top_k}")
 
-    app_ctx = ctx.request_context.lifespan_context
-    qdrant_client = app_ctx.qdrant_client
-    embeddings_model = app_ctx.embeddings_model
-    collection_name = app_ctx.collection_name
+    qdrant_client = app_state["qdrant_client"]
+    embeddings_model = app_state["embedding_model"]
+    collection_name = app_state["collection_name"]
 
     try:
         # Generate embedding for the query text
@@ -125,8 +122,7 @@ async def roblox_engine_api_docs(
 
         return QueryResponse(results=formatted_results)
     except Exception as e:
-        if ctx:
-            await ctx.error(f"Error during query: {e}")
+        print(f"Error during query: {e}")
         raise HTTPException(status_code=500, detail=f"An internal error occurred: {e}")
 
 @mcp_server.resource("resource://roblox/engine-reference/datatypes-and-classes")
