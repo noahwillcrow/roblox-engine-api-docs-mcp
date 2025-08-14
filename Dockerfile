@@ -27,9 +27,7 @@ RUN apt-get update && apt-get install -y build-essential git && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml ./
-# Install torch CPU-only first to reduce image size
-RUN pip install torch --index-url https://download.pytorch.org/whl/cpu && \
-    poetry install --no-root && \
+RUN poetry install --no-root && \
     rm -rf /root/.cache/pypoetry
 
 # --- Stage 3: Ingester ---

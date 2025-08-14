@@ -1,9 +1,9 @@
 name: Build and Publish Docker Image
 
-on:
-  workflow_dispatch:
-  schedule:
-    - cron: '0 8 * * 4' # Midnight PST on Thursdays since Roblox updates on Wednesdays
+# on:
+#   workflow_dispatch:
+#   schedule:
+#     - cron: '0 8 * * 4' # Midnight PST on Thursdays since Roblox updates on Wednesdays
 
 jobs:
   build-and-push:
