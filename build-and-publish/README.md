@@ -11,7 +11,7 @@ The `go` script is a parameterized shell script that encapsulates all the necess
 *   Docker Desktop (or Docker Engine) installed and running.
 *   Docker Buildx installed and configured.
     *   **For Docker Desktop users**: Buildx is usually included and enabled by default. If not, ensure Docker Desktop is up to date.
-    *   **For Linux users**: You might need to install the Docker Buildx plugin separately. Refer to the official Docker documentation for your distribution. After installation, you might need to initialize a builder instance: `docker buildx create --name mybuilder --use`.
+    *   **For Linux users**: You might need to install the Docker Buildx plugin separately. Refer to the official Docker documentation for your distribution. After installation, you might need to initialize a builder instance: `docker buildx create --name mybuilder --use`. If you encounter issues, try running `docker buildx install` to ensure the necessary components are in place.
 *   Python 3.11 and Poetry installed.
 *   A Docker Hub account (or access to another container registry).
 
@@ -20,13 +20,14 @@ The `go` script is a parameterized shell script that encapsulates all the necess
 To run the script, navigate to the project root directory and execute the following command:
 
 ```bash
-./build-and-publish/go DOCKERHUB_USERNAME [DOCKERHUB_PASSWORD_OR_PAT]
+./build-and-publish/go DOCKERHUB_USERNAME [DOCKERHUB_PASSWORD_OR_PAT] [--skip-ingestion]
 ```
 
 #### Arguments
 
 *   `DOCKERHUB_USERNAME`: (Required) Your Docker Hub username.
 *   `DOCKERHUB_PASSWORD_OR_PAT`: (Optional) Your Docker Hub password or a Personal Access Token (PAT). If you do not provide this argument, you will be prompted to enter your password interactively. Using a PAT is recommended for better security, especially in automated environments.
+*   `--skip-ingestion`: (Optional) If provided, the script will skip building the ingestion Docker image. This assumes a pre-built `roblox-engine-api-docs-mcp-ingestion:latest` image is available locally.
 
 ### What the Script Does
 

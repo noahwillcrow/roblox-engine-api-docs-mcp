@@ -6,12 +6,14 @@
 # It provides a parameterized way to build and publish the Docker image to Docker Hub.
 #
 # Usage:
-#   ./build-and-publish/go DOCKERHUB_USERNAME [DOCKERHUB_PASSWORD_OR_PAT]
+#   ./build-and-publish/go DOCKERHUB_USERNAME [DOCKERHUB_PASSWORD_OR_PAT] [--skip-ingestion]
 #
 # Arguments:
 #   DOCKERHUB_USERNAME: Your Docker Hub username. (Required)
 #   DOCKERHUB_PASSWORD_OR_PAT: Your Docker Hub password or Personal Access Token. (Optional)
 #                            If not provided, you will be prompted to enter it.
+#   --skip-ingestion: (Optional) If provided, the script will skip building the ingestion Docker image.
+#                     This assumes a pre-built 'roblox-engine-api-docs-mcp-ingestion:latest' image is available locally.
 
 set -eo pipefail
 
@@ -80,8 +82,31 @@ if [ -z "$1" ]; then
     error_exit "Docker Hub username is required. Usage: ./build-and-publish/go DOCKERHUB_USERNAME [DOCKERHUB_PASSWORD_OR_PAT]"
 fi
 
-DOCKERHUB_USERNAME="$1"
-DOCKERHUB_PASSWORD_OR_PAT="$2"
+DOCKERHUB_USERNAME=""
+DOCKERHUB_PASSWORD_OR_PAT=""
+SKIP_INGESTION=false
+
+for arg in "$@"; do
+    case $arg in
+        --skip-ingestion)
+            SKIP_INGESTION=true
+            shift
+            ;;
+        *)
+            if [ -z "$DOCKERHUB_USERNAME" ]; then
+                DOCKERHUB_USERNAME="$arg"
+            elif [ -z "$DOCKERHUB_PASSWORD_OR_PAT" ]; then
+                DOCKERHUB_PASSWORD_OR_PAT="$arg"
+            fi
+            shift
+            ;;
+    esac
+done
+
+# Check for required arguments after parsing flags
+if [ -z "$DOCKERHUB_USERNAME" ]; then
+    error_exit "Docker Hub username is required. Usage: ./build-and-publish/go DOCKERHUB_USERNAME [DOCKERHUB_PASSWORD_OR_PAT] [--skip-ingestion]"
+fi
 
 # Log in to Docker Hub
 if [ -n "$DOCKERHUB_PASSWORD_OR_PAT" ]; then
@@ -98,9 +123,17 @@ if [ -z "$VERSION" ]; then
 fi
 echo "Roblox API Version: $VERSION"
 
-# Build the Ingestion Docker Image (single platform)
-echo "--- Building Ingestion Docker Image ---"
-docker build -f Dockerfile.ingestion -t roblox-engine-api-docs-mcp-ingestion:latest .
+if [ "$SKIP_INGESTION" = false ]; then
+    # Build the Ingestion Docker Image (single platform)
+    echo "--- Building Ingestion Docker Image ---"
+    docker build -f Dockerfile.ingestion -t roblox-engine-api-docs-mcp-ingestion:latest .
+else
+    echo "--- Skipping Ingestion Docker Image build as --skip-ingestion flag is set ---"
+    echo "--- Ensuring 'roblox-engine-api-docs-mcp-ingestion:latest' image exists locally ---"
+    if ! docker image inspect roblox-engine-api-docs-mcp-ingestion:latest &> /dev/null; then
+        error_exit "Ingestion image 'roblox-engine-api-docs-mcp-ingestion:latest' not found locally. Please build it or remove --skip-ingestion flag."
+    fi
+fi
 
 
 # Build the MCP Server Docker Image for multiple platforms
