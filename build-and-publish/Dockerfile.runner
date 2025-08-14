@@ -1,0 +1,54 @@
+# This Dockerfile creates a "job runner" container.
+# Its purpose is to execute the 'build-and-publish/go' script in an isolated environment,
+# avoiding the need to install Python, Poetry, or other dependencies on the host machine.
+#
+# How to use:
+# 1. Build this Docker image:
+#    docker build -t roblox-mcp-runner -f build-and-publish/Dockerfile.runner .
+#
+# 2. Run the script using this image:
+#    docker run --rm -it \
+#      -v /var/run/docker.sock:/var/run/docker.sock \
+#      -v "$(pwd)":/app \
+#      roblox-mcp-runner \
+#      <DOCKERHUB_USERNAME> [DOCKERHUB_PASSWORD_OR_PAT] [--force-ingestion]
+#
+# The Docker socket is mounted to allow the container to use the host's Docker daemon.
+# The project directory is mounted to '/app' so that:
+#   a) The scripts have access to all project files.
+#   b) The 'qdrant_data' directory, when generated, is created on the host.
+#   c) The Docker build context is correct when 'docker buildx' is called.
+
+# Use the official Docker image to get access to the Docker CLI and buildx
+FROM docker:24.0
+
+# Install Python, pip, and curl. The base image is Alpine.
+RUN apk add --no-cache python3 py3-pip curl
+
+# Install Poetry
+RUN curl -sSL https://install.python-poetry.org | python3 -
+
+# Add Poetry to the PATH for subsequent commands
+# /root is the home directory for the root user.
+ENV PATH="/root/.local/bin:$PATH"
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Copy all project files into the image.
+# This is necessary so the image can be built, but when running,
+# a volume should be mounted to this path to reflect local changes
+# and to get build artifacts (like qdrant_data) out of the container.
+COPY . .
+
+# Make the scripts executable
+RUN chmod +x ./build-and-publish/go && \
+    chmod +x ./build-and-publish/ingest-locally
+
+# Set the entrypoint to the 'go' script. This allows passing arguments
+# to 'docker run' that will be forwarded directly to the script.
+ENTRYPOINT ["./build-and-publish/go"]
+
+# Default command is empty. If no arguments are provided to 'docker run',
+# the 'go' script will execute with no arguments and display its usage instructions.
+CMD []
