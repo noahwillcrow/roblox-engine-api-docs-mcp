@@ -70,7 +70,7 @@ def parse_api_dump(api_dump_data: dict) -> list[Document]:
             
             tags = member.get("Tags")
             if tags:
-                content_lines.append(f"Tags: {', '.join(tags)}")
+                content_lines.append(f"Tags: {', '.join([t.get('Name') for t in tags])}")
 
             page_content = "\n".join(content_lines)
             
