@@ -12,6 +12,8 @@ from langchain_community.embeddings import SentenceTransformerEmbeddings
 from mcp.server.fastmcp import FastMCP, Context
 from mcp.server.session import ServerSession
 
+from ..state import app_state
+
 @dataclass
 class AppContext:
     """Application context with typed dependencies for MCP server."""
@@ -23,27 +25,25 @@ class AppContext:
 @asynccontextmanager
 async def mcp_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
     """Manage application lifecycle with type-safe context for MCP server."""
-    # Initialize resources on startup
-    # These will need to be properly initialized based on your main application's setup
-    # For now, we'll use placeholders or raise NotImplementedError
-    qdrant_client = QdrantClient(host="localhost", port=6333) # Replace with actual Qdrant client init
-    embeddings_model = SentenceTransformerEmbeddings(model_name="all-MiniLM-L6-v2") # Replace with actual model init
-    collection_name = "roblox_api_rag_collection" # Replace with actual collection name
-    data_types_and_classes = {"data_types": ["string", "number"], "classes": ["Part", "Script"]} # Replace with actual loaded data
-
     try:
         yield AppContext(
-            qdrant_client=qdrant_client,
-            embeddings_model=embeddings_model,
-            collection_name=collection_name,
-            data_types_and_classes=data_types_and_classes
+            qdrant_client=app_state["qdrant_client"],
+            embeddings_model=app_state["embedding_model"],
+            collection_name=app_state["collection_name"],
+            data_types_and_classes=app_state["data_types_and_classes"]
         )
     finally:
-        # Cleanup on shutdown (if necessary, e.g., closing client connections)
+        # No cleanup needed here, as the main app's lifespan manager handles it.
         pass
 
 # Initialize FastMCP server with lifespan
-mcp_server = FastMCP("Roblox API RAG", lifespan=mcp_lifespan)
+mcp_server = FastMCP(
+    "Roblox API RAG",
+    lifespan=mcp_lifespan,
+    title="Roblox API RAG MCP",
+    description="An MCP server for the Roblox API RAG.",
+    version="1.0.0"
+)
 
 # Define Pydantic models for tool inputs/outputs if they are not already defined elsewhere
 # These models will be automatically converted to JSON schemas by FastMCP
@@ -59,13 +59,8 @@ class QueryRequest(BaseModel):
     filters: Optional[QueryFilters] = Field(None, description="Optional metadata filters to apply to the search.")
 
 class QueryResultPayload(BaseModel):
-    # The payload from Qdrant can be complex, so we'll use a flexible type
-    # You might want to define a more specific Pydantic model if the payload structure is well-known
-    content: str
-    source: str
-    class_name: Optional[str] = None
-    member_type: Optional[str] = None
-    # Add any other fields that are part of your Qdrant payload
+    page_content: str
+    metadata: Dict[str, Any]
 
 class QueryResult(BaseModel):
     score: float
@@ -131,7 +126,10 @@ async def query_roblox_api_rag(
         formatted_results = [
             QueryResult(
                 score=result.score,
-                payload=QueryResultPayload(pass_through_data=result.payload), # Assuming payload is already a dict
+                payload=QueryResultPayload(
+                    page_content=result.payload.get("page_content"),
+                    metadata=result.payload.get("metadata")
+                ),
             )
             for result in search_results
         ]
@@ -142,7 +140,7 @@ async def query_roblox_api_rag(
             await ctx.error(f"Error during query: {e}")
         raise HTTPException(status_code=500, detail=f"An internal error occurred: {e}")
 
-@mcp_server.resource("data://roblox/types_and_classes")
+@mcp_server.resource("/roblox/types-and-classes")
 async def get_roblox_data_types_and_classes(
     ctx: Context[ServerSession, AppContext], # Inject context for logging/progress and app resources
 ) -> DataTypesAndClassesResponse:
@@ -166,8 +164,3 @@ async def get_roblox_data_types_and_classes(
     )
 
 # The mcp_router is no longer needed as FastMCP handles routing internally.
-# If you need to mount this MCP server into an existing FastAPI app, you can do so like this:
-# from fastapi import FastAPI
-# app = FastAPI()
-# app.mount("/mcp", mcp_server.streamable_http_app())
-# Or for SSE: app.mount("/mcp", mcp_server.sse_app())

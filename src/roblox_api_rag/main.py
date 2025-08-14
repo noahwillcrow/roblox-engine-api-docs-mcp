@@ -1,13 +1,13 @@
 import os
 import json
 from pathlib import Path
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from qdrant_client import QdrantClient
 from langchain_community.embeddings import SentenceTransformerEmbeddings
 
-from .api import endpoints
-from .mcp import server as mcp_endpoints
+from .mcp.server import mcp_server
+from .state import app_state
 
 # --- Constants ---
 QDRANT_DATA_PATH = os.getenv("QDRANT_DATA_PATH", "./qdrant_data")
@@ -17,8 +17,6 @@ DATA_TYPES_CLASSES_FILE = Path(QDRANT_DATA_PATH) / "data_types_and_classes.json"
 
 # --- Application State Management ---
 # Use a dictionary to hold the application's state, including our expensive resources.
-app_state = {}
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
@@ -74,15 +72,12 @@ def get_embedding_model_override():
 def get_collection_name_override():
     return app_state.get("collection_name")
 
-app.dependency_overrides[endpoints.get_qdrant_client] = get_qdrant_client_override
-app.dependency_overrides[endpoints.get_embedding_model] = get_embedding_model_override
-app.dependency_overrides[endpoints.get_collection_name] = get_collection_name_override
-
-# --- Include API Router ---
-app.include_router(endpoints.router, prefix="/api/v1")
-app.include_router(mcp_endpoints.mcp_router)
+# --- Mount MCP Server ---
+# Mount the FastMCP server at the /mcp path.
+# This makes the MCP interface available at http://localhost:8000/mcp
+app.mount("/mcp", mcp_server.create_app())
 
 # --- Root Endpoint ---
 @app.get("/", include_in_schema=False)
 def read_root():
-    return {"message": "Welcome to the Roblox API RAG. See /docs for API documentation."}
+    return {"message": "Welcome to the Roblox API RAG. See /docs for API documentation or /mcp for the MCP interface."}
