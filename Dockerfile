@@ -42,7 +42,7 @@ ENV QDRANT_DATA_PATH="/app/qdrant_data"
 
 # Run the ingestion script
 RUN poetry run python -c "import nltk; nltk.download('punkt'); nltk.download('punkt_tab'); nltk.download('averaged_perceptron_tagger'); nltk.download('averaged_perceptron_tagger_eng'); nltk.download('stopwords'); nltk.download('wordnet'); nltk.download('omw-1.4'); nltk.download('maxent_ne_chunker'); nltk.download('words')"
-RUN poetry run python -m roblox_api_rag.ingestion.main
+RUN poetry run python -m ingestion.main
 
 # --- Stage 4: Final ---
 # This is the minimal production image.
@@ -62,9 +62,9 @@ COPY --from=builder /app/poetry.lock ./
 COPY --from=builder /app/pyproject.toml ./
 
 # Copy the API application code
-COPY ./src/roblox_api_rag/main.py ./src/roblox_api_rag/main.py
-COPY ./src/roblox_api_rag/api ./src/roblox_api_rag/api
-COPY ./src/roblox_api_rag/mcp ./src/roblox_api_rag/mcp
+COPY ./src/mcp_server/main.py ./src/mcp_server/main.py
+COPY ./src/mcp_server/api ./src/mcp_server/api
+COPY ./src/mcp_server/mcp ./src/mcp_server/mcp
 
 # Set environment variables for the runtime
 ENV QDRANT_DATA_PATH="/app/qdrant_data" \
@@ -72,4 +72,4 @@ ENV QDRANT_DATA_PATH="/app/qdrant_data" \
 
 EXPOSE 8000
 
-CMD ["uvicorn", "roblox_api_rag.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "mcp_server.main:app", "--host", "0.0.0.0", "--port", "8000"]

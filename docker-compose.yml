@@ -16,7 +16,7 @@ services:
     environment:
       - QDRANT_DATA_PATH=/app/qdrant_data
       - COLLECTION_NAME=roblox_api
-    command: poetry run uvicorn roblox_api_rag.main:app --host 0.0.0.0 --port 8000 --reload --app-dir src
+    command: poetry run uvicorn mcp_server.main:app --host 0.0.0.0 --port 8000 --reload --app-dir src
 
   ingestion:
     build:
@@ -30,7 +30,7 @@ services:
     environment:
       - QDRANT_DATA_PATH=/app/qdrant_data
       - COLLECTION_NAME=roblox_api
-    command: poetry run python -m roblox_api_rag.ingestion.main
+    command: poetry run python -m ingestion.main
 
 volumes:
   qdrant_data:
