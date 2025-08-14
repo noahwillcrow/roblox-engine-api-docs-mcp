@@ -57,6 +57,10 @@ COPY --from=builder /app/.venv /app/.venv
 # Copy the populated Qdrant database from the ingester stage
 COPY --from=ingester /app/qdrant_data /app/qdrant_data
 
+# Copy the project files
+COPY --from=builder poetry.lock ./
+COPY --from=builder pyproject.toml ./
+
 # Copy the API application code
 COPY ./src/roblox_api_rag/main.py ./src/roblox_api_rag/main.py
 COPY ./src/roblox_api_rag/api ./src/roblox_api_rag/api

@@ -3,7 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: api
+      target: final
+    working_dir: /app
     ports:
       - "8000:8000"
     volumes:
@@ -20,7 +21,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: ingestion
+      target: ingester
+    working_dir: /app
     volumes:
       - ./src:/app/src
       - qdrant_data:/app/qdrant_data
