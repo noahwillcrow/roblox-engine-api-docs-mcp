@@ -1,5 +1,9 @@
+import logging
 from langchain.docstore.document import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
 # --- Constants ---
 MARKDOWN_CHUNK_SIZE = 1000
@@ -12,7 +16,8 @@ def chunk_documents(documents: list[Document]) -> list[Document]:
     Chunks a list of documents based on their source metadata.
 
     - Documents from 'api_dump' are considered pre-chunked and are passed through directly.
-    - Documents from 'creator_docs' are split into smaller chunks using a text splitter.
+    - Documents from 'creator_docs' and 'creator_docs_yaml' are split into smaller chunks
+      using a text splitter.
 
     Args:
         documents: A list of Document objects from the parsing stage.
@@ -20,7 +25,7 @@ def chunk_documents(documents: list[Document]) -> list[Document]:
     Returns:
         A list of chunked Document objects ready for embedding.
     """
-    print("Chunking documents...")
+    logging.info("Chunking documents...")
     api_dump_docs = []
     creator_docs_to_chunk = []
 
@@ -29,12 +34,12 @@ def chunk_documents(documents: list[Document]) -> list[Document]:
         if source == "api_dump":
             # API dump documents are already logically chunked
             api_dump_docs.append(doc)
-        elif source == "creator_docs":
+        elif source in ["creator_docs", "creator_docs_yaml"]:
             creator_docs_to_chunk.append(doc)
         else:
-            print(f"Warning: Document with unknown source found: {doc.metadata}")
+            logging.warning(f"Document with unknown source found: {doc.metadata}")
 
-    # Chunk the markdown documents
+    # Chunk the markdown and YAML documents
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=MARKDOWN_CHUNK_SIZE,
         chunk_overlap=MARKDOWN_CHUNK_OVERLAP,
@@ -44,15 +49,15 @@ def chunk_documents(documents: list[Document]) -> list[Document]:
     chunked_creator_docs = text_splitter.split_documents(creator_docs_to_chunk)
     
     total_chunks = len(api_dump_docs) + len(chunked_creator_docs)
-    print(f"Chunking complete. Total chunks: {total_chunks}")
-    print(f"  - API Dump chunks: {len(api_dump_docs)}")
-    print(f"  - Creator Docs chunks: {len(chunked_creator_docs)}")
+    logging.info(f"Chunking complete. Total chunks: {total_chunks}")
+    logging.info(f"  - API Dump chunks: {len(api_dump_docs)}")
+    logging.info(f"  - Creator Docs chunks: {len(chunked_creator_docs)}")
     
     return api_dump_docs + chunked_creator_docs
 
 if __name__ == '__main__':
     # This block is for testing the chunking function independently.
-    print("--- Testing Chunking Function ---")
+    logging.info("--- Testing Chunking Function ---")
 
     # Create some dummy documents to simulate parsed data
     test_docs = [
@@ -79,18 +84,25 @@ if __name__ == '__main__':
             This should be enough now.
             """ * 5, # Make it long enough to be chunked
             metadata={"source": "creator_docs", "file_path": "scripting/intro.md"}
+        ),
+        Document(
+            page_content="""
+            This is a YAML-sourced document about an enum.
+            It describes the TeleportType enum and its members.
+            """ * 2, # Make it long enough to be chunked
+            metadata={"source": "creator_docs_yaml", "file_path": "reference/engine/enums/TeleportType.yaml", "type": "enum", "name": "TeleportType"}
         )
     ]
 
     chunked_results = chunk_documents(test_docs)
 
-    print(f"\nTotal documents before chunking: {len(test_docs)}")
-    print(f"Total documents after chunking: {len(chunked_results)}")
+    logging.info(f"\nTotal documents before chunking: {len(test_docs)}")
+    logging.info(f"Total documents after chunking: {len(chunked_results)}")
 
-    print("\n--- Sample Chunks ---")
+    logging.info("\n--- Sample Chunks ---")
     for i, chunk in enumerate(chunked_results):
-        print(f"\n--- Chunk {i+1} ---")
-        print(f"Source: {chunk.metadata.get('source')}")
-        print(f"Content Snippet:\n{chunk.page_content[:200]}...")
-        if chunk.metadata.get("source") == "creator_docs":
-            print(f"Chunk length: {len(chunk.page_content)}")
+        logging.info(f"\n--- Chunk {i+1} ---")
+        logging.info(f"Source: {chunk.metadata.get('source')}")
+        logging.info(f"Content Snippet:\n{chunk.page_content[:200]}...")
+        if chunk.metadata.get("source") in ["creator_docs", "creator_docs_yaml"]:
+            logging.info(f"Chunk length: {len(chunk.page_content)}")
