@@ -19,36 +19,57 @@
 #   b) The 'qdrant_data' directory, when generated, is created on the host.
 #   c) The Docker build context is correct when 'docker buildx' is called.
 
-# Use the official Docker image to get access to the Docker CLI and buildx
-FROM docker:24.0
+# Use the official Python 3.11 slim base image.
+FROM python:3.11-slim-bullseye
 
-# Install Python, pip, and curl. The base image is Alpine.
-RUN apk add --no-cache python3 py3-pip curl
+# Set environment variables to prevent interactive prompts during installation.
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install Docker CLI, buildx plugin, and other necessary dependencies.
+RUN \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        gnupg \
+        lsb-release \
+        bash \
+        gfortran \
+        libopenblas-dev \
+        liblapack-dev \
+        build-essential \
+        pkg-config \
+        git && \
+    mkdir -p /etc/apt/keyrings && \
+    curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg && \
+    echo \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian \
+      $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null && \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        docker-ce-cli \
+        docker-buildx-plugin && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install Poetry
 RUN curl -sSL https://install.python-poetry.org | python3 -
-
-# Add Poetry to the PATH for subsequent commands
-# /root is the home directory for the root user.
 ENV PATH="/root/.local/bin:$PATH"
 
 # Set the working directory inside the container
 WORKDIR /app
 
 # Copy all project files into the image.
-# This is necessary so the image can be built, but when running,
-# a volume should be mounted to this path to reflect local changes
-# and to get build artifacts (like qdrant_data) out of the container.
 COPY . .
+
+# Install poetry dependencies
+RUN poetry install --no-root
 
 # Make the scripts executable
 RUN chmod +x ./build-and-publish/go && \
     chmod +x ./build-and-publish/ingest-locally
 
-# Set the entrypoint to the 'go' script. This allows passing arguments
-# to 'docker run' that will be forwarded directly to the script.
+# Set the entrypoint to the 'go' script.
 ENTRYPOINT ["./build-and-publish/go"]
 
-# Default command is empty. If no arguments are provided to 'docker run',
-# the 'go' script will execute with no arguments and display its usage instructions.
+# Default command is empty.
 CMD []

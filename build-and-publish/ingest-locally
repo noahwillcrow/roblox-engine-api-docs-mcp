@@ -33,13 +33,13 @@ fi
 
 # Download NLTK data
 echo "--- Downloading NLTK data ---"
-if ! poetry run python -c "import nltk; nltk.download('punkt'); nltk.download('punkt_tab'); nltk.download('averaged_perceptron_tagger'); nltk.download('averaged_perceptron_tagger_eng'); nltk.download('stopwords'); nltk.download('wordnet'); nltk.download('omw-1.4'); nltk.download('maxent_ne_chunker'); nltk.download('words')"; then
+if ! poetry run python3 -c "import nltk; nltk.download('punkt'); nltk.download('punkt_tab'); nltk.download('averaged_perceptron_tagger'); nltk.download('averaged_perceptron_tagger_eng'); nltk.download('stopwords'); nltk.download('wordnet'); nltk.download('omw-1.4'); nltk.download('maxent_ne_chunker'); nltk.download('words')"; then
     error_exit "Failed to download NLTK data."
 fi
 
 # Run the ingestion script
 echo "--- Running local ingestion script ---"
-if ! poetry run python -m src.ingestion.main; then
+if ! poetry run python3 -m src.ingestion.main; then
     error_exit "Failed to run ingestion script."
 fi
 

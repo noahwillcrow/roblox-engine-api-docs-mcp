@@ -41,7 +41,7 @@ function error_exit() {
 # Returns:
 #   None
 function command_check() {
-    if ! command -v "$1" &> /dev/null; then
+    if ! command -v "$1" > /dev/null 2>&1; then
         error_exit "$1 is not installed. Please install it to continue."
     fi
 }
@@ -55,7 +55,7 @@ command_check "docker"
 echo "--- Ensuring Docker Buildx builder is correctly configured ---"
 # Create a new builder with a unique name and the docker-container driver
 BUILDER_NAME="mcp-builder"
-if ! docker buildx inspect "$BUILDER_NAME" &> /dev/null; then
+if ! docker buildx inspect "$BUILDER_NAME" > /dev/null 2>&1; then
     echo "--- Creating a new Docker Buildx builder: $BUILDER_NAME ---"
     docker buildx create --name "$BUILDER_NAME" --driver docker-container || error_exit "Failed to create Docker Buildx builder."
 fi
@@ -66,12 +66,14 @@ docker buildx use "$BUILDER_NAME" || error_exit "Failed to use Docker Buildx bui
 
 # Set poetry command path
 POETRY_CMD="poetry"
-if ! command -v "poetry" &amp;> /dev/null; then
-    echo "--- Poetry not found, installing... ---"
-    if ! curl -sSL https://install.python-poetry.org | python -; then
+if ! command -v "poetry" > /dev/null 2>&1; then
+    echo "--- Poetry not found, attempting to install... ---"
+    if ! curl -sSL https://install.python-poetry.org | python3 -; then
         error_exit "Failed to install poetry."
     fi
-    POETRY_CMD="$HOME/.local/bin/poetry"
+    # Add poetry to the path
+    export PATH="$HOME/.local/bin:$PATH"
+    POETRY_CMD="poetry" # It should now be in the path
 fi
 
 # Install dependencies for version script
@@ -80,33 +82,31 @@ if ! "$POETRY_CMD" install --only versioning; then
     error_exit "Failed to install dependencies with poetry."
 fi
 
-# Check for required arguments
-if [ -z "$1" ]; then
-    error_exit "Docker Hub username is required. Usage: ./build-and-publish/go DOCKERHUB_USERNAME [DOCKERHUB_PASSWORD_OR_PAT]"
-fi
-
+# --- Argument Parsing ---
 DOCKERHUB_USERNAME=""
 DOCKERHUB_PASSWORD_OR_PAT=""
 FORCE_INGESTION=false
 
-for arg in "$@"; do
-    case $arg in
+# Parse arguments
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
         --force-ingestion)
             FORCE_INGESTION=true
             shift
             ;;
         *)
             if [ -z "$DOCKERHUB_USERNAME" ]; then
-                DOCKERHUB_USERNAME="$arg"
+                DOCKERHUB_USERNAME="$1"
             elif [ -z "$DOCKERHUB_PASSWORD_OR_PAT" ]; then
-                DOCKERHUB_PASSWORD_OR_PAT="$arg"
+                DOCKERHUB_PASSWORD_OR_PAT="$1"
             fi
             shift
             ;;
     esac
 done
 
-# Check for required arguments after parsing flags
+
+# Check for required arguments
 if [ -z "$DOCKERHUB_USERNAME" ]; then
     error_exit "Docker Hub username is required. Usage: ./build-and-publish/go DOCKERHUB_USERNAME [DOCKERHUB_PASSWORD_OR_PAT] [--force-ingestion]"
 fi
@@ -120,7 +120,7 @@ fi
 
 # Get the Roblox API Version
 echo "--- Getting Roblox API Version ---"
-VERSION=$("$POETRY_CMD" run python src/scripts/get_roblox_version.py)
+VERSION=$("$POETRY_CMD" run python3 src/scripts/get_roblox_version.py)
 if [ -z "$VERSION" ]; then
     error_exit "Failed to get Roblox API Version."
 fi
