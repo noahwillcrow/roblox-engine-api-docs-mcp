@@ -70,7 +70,16 @@ def parse_api_dump(api_dump_data: dict) -> list[Document]:
             
             tags = member.get("Tags")
             if tags:
-                content_lines.append(f"Tags: {', '.join([t.get('Name') for t in tags])}")
+                # Handle tags which can be strings or dictionaries
+                processed_tags = []
+                for t in tags:
+                    if isinstance(t, dict):
+                        processed_tags.append(t.get('Name'))
+                    elif isinstance(t, str):
+                        processed_tags.append(t)
+                    else:
+                        raise TypeError("Unexpected type for tag: " + type(t))
+                content_lines.append(f"Tags: {', '.join(filter(None, processed_tags))}")
 
             page_content = "\n".join(content_lines)
             
