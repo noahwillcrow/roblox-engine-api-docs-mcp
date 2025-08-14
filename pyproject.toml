@@ -16,6 +16,9 @@ langchain-community = "^0.0.34"
 sentence-transformers = "^2.7.0"
 unstructured = {extras = ["md"], version = "^0.13.2"}
 httpx = "^0.27.0"
+langchain-core = "^0.1.45"
+python-multipart = "^0.0.9"
+pydantic-settings = "^2.2.1"
 
 [build-system]
 requires = ["poetry-core"]

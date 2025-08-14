@@ -68,3 +68,10 @@ class StatusResponse(BaseModel):
     roblox_version: str
     last_updated: str
     total_documents: int
+
+class DataTypesAndClassesResponse(BaseModel):
+    """
+    The response for the /data_types_and_classes endpoint.
+    """
+    data_types: List[str]
+    classes: List[str]

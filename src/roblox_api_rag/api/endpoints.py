@@ -3,7 +3,7 @@ from qdrant_client import QdrantClient
 from qdrant_client.http import models as rest
 from langchain_community.embeddings import SentenceTransformerEmbeddings
 
-from .models import QueryRequest, QueryResponse, HealthResponse, StatusResponse
+from .models import QueryRequest, QueryResponse, HealthResponse, StatusResponse, DataTypesAndClassesResponse
 
 # --- API Router ---
 router = APIRouter()
@@ -115,3 +115,15 @@ def get_status(
     except Exception as e:
         print(f"Error getting status: {e}")
         raise HTTPException(status_code=500, detail="Could not retrieve collection status.")
+
+@router.get("/data_types_and_classes", response_model=DataTypesAndClassesResponse)
+def get_data_types_and_classes(
+    data_types_and_classes: dict = Depends(lambda: app_state.get("data_types_and_classes"))
+):
+    """
+    Returns a list of all Roblox API data types and classes.
+    This data is generated during the ingestion process.
+    """
+    if not data_types_and_classes:
+        raise HTTPException(status_code=500, detail="Data types and classes not loaded.")
+    return data_types_and_classes

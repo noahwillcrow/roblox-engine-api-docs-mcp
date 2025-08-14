@@ -1,15 +1,19 @@
 import os
-from fastapi import FastAPI
+import json
+from pathlib import Path
+from fastapi import FastAPI, HTTPException
 from contextlib import asynccontextmanager
 from qdrant_client import QdrantClient
 from langchain_community.embeddings import SentenceTransformerEmbeddings
 
 from .api import endpoints
+from .mcp import server as mcp_endpoints
 
 # --- Constants ---
 QDRANT_DATA_PATH = os.getenv("QDRANT_DATA_PATH", "./qdrant_data")
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
 COLLECTION_NAME = os.getenv("COLLECTION_NAME", "roblox_api")
+DATA_TYPES_CLASSES_FILE = Path(QDRANT_DATA_PATH) / "data_types_and_classes.json"
 
 # --- Application State Management ---
 # Use a dictionary to hold the application's state, including our expensive resources.
@@ -30,6 +34,17 @@ async def lifespan(app: FastAPI):
     app_state["qdrant_client"] = QdrantClient(path=QDRANT_DATA_PATH)
     
     app_state["collection_name"] = COLLECTION_NAME
+
+    # Load data types and classes
+    print(f"Loading data types and classes from {DATA_TYPES_CLASSES_FILE}")
+    if DATA_TYPES_CLASSES_FILE.exists():
+        with open(DATA_TYPES_CLASSES_FILE, "r") as f:
+            app_state["data_types_and_classes"] = json.load(f)
+        print("Data types and classes loaded successfully.")
+    else:
+        print(f"Warning: {DATA_TYPES_CLASSES_FILE} not found. Data types and classes endpoint will return empty data.")
+        app_state["data_types_and_classes"] = {"data_types": [], "classes": []}
+    
     print("Startup complete.")
     
     yield
@@ -65,6 +80,7 @@ app.dependency_overrides[endpoints.get_collection_name] = get_collection_name_ov
 
 # --- Include API Router ---
 app.include_router(endpoints.router, prefix="/api/v1")
+app.include_router(mcp_endpoints.mcp_router)
 
 # --- Root Endpoint ---
 @app.get("/", include_in_schema=False)

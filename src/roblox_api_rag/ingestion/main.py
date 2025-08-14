@@ -5,7 +5,7 @@ from langchain_community.embeddings import SentenceTransformerEmbeddings
 from langchain.docstore.document import Document
 
 from .sources import get_api_dump, get_creator_docs_path
-from .parsing import parse_api_dump, parse_markdown_documents
+from .parsing import parse_api_dump, parse_markdown_documents, extract_data_types_and_classes
 from .chunking import chunk_documents
 
 # --- Constants ---
@@ -27,11 +27,19 @@ def run_ingestion():
     api_dump_data = get_api_dump()
     docs_path = get_creator_docs_path()
 
-    # 2. Parse Documents
-    print("\n--- Step 2: Parsing Documents ---")
+    # 2. Parse Documents and Extract Metadata
+    print("\n--- Step 2: Parsing Documents and Extracting Metadata ---")
     api_docs = parse_api_dump(api_dump_data)
     md_docs = parse_markdown_documents(docs_path)
     all_docs = api_docs + md_docs
+
+    # Extract and save data types and classes
+    data_types_and_classes = extract_data_types_and_classes(api_dump_data)
+    data_types_classes_file = Path(QDRANT_DATA_PATH) / "data_types_and_classes.json"
+    os.makedirs(Path(QDRANT_DATA_PATH), exist_ok=True)
+    with open(data_types_classes_file, "w") as f:
+        json.dump(data_types_and_classes, f, indent=2)
+    print(f"Saved data types and classes to {data_types_classes_file}")
 
     # 3. Chunk Documents
     print("\n--- Step 3: Chunking Documents ---")
