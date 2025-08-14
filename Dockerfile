@@ -41,7 +41,7 @@ COPY ./src /app/src
 ENV QDRANT_DATA_PATH="/app/qdrant_data"
 
 # Run the ingestion script
-RUN poetry run python -c "import nltk; nltk.download('punkt'); nltk.download('punkt_tab'); nltk.download('averaged_perceptron_tagger'); nltk.download('stopwords'); nltk.download('wordnet')"
+RUN poetry run python -c "import nltk; nltk.download('punkt'); nltk.download('punkt_tab'); nltk.download('averaged_perceptron_tagger'); nltk.download('averaged_perceptron_tagger_eng'); nltk.download('stopwords'); nltk.download('wordnet'); nltk.download('omw-1.4'); nltk.download('maxent_ne_chunker'); nltk.download('words')"
 RUN poetry run python -m roblox_api_rag.ingestion.main
 
 # --- Stage 4: Final ---
