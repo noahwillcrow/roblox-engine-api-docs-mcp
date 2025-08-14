@@ -22,11 +22,11 @@ FROM base as builder
 
 WORKDIR /app
 
-# Install build-essential for packages that need to compile C extensions
+# Install build-essential for packages that need to compile C extensions and git for cloning
 RUN apt-get update && apt-get install -y build-essential git && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-COPY pyproject.toml ./
+COPY pyproject.toml poetry.lock ./
 RUN poetry install --no-root && \
     rm -rf /root/.cache/pypoetry
 
@@ -44,7 +44,7 @@ COPY --from=builder /app/.venv /app/.venv
 COPY --from=builder /app/poetry.lock ./
 COPY --from=builder /app/pyproject.toml ./
 
-# Copy the API application code
+# Copy the API application code and ingestion data
 COPY ./src/mcp_server ./src/mcp_server
 
 # Copy the populated Qdrant database from the local build context
