@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Dict, Any, List, Optional
 
 from fastapi import HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from qdrant_client import QdrantClient
 from qdrant_client.http import models as rest
 from langchain_community.embeddings import SentenceTransformerEmbeddings
@@ -45,16 +45,6 @@ mcp_server = FastMCP(
 # Define Pydantic models for tool inputs/outputs if they are not already defined elsewhere
 # These models will be automatically converted to JSON schemas by FastMCP
 
-class QueryFilters(BaseModel):
-    source: Optional[str] = Field(None, description="Filter by data source: 'api_dump' for API reference, 'creator_docs' for general documentation.")
-    class_name: Optional[str] = Field(None, description="Filter by a specific API class name (e.g., 'Part'). Only applies to 'api_dump' source.")
-    member_type: Optional[str] = Field(None, description="Filter by member type: 'Property', 'Function', 'Event', or 'Callback'. Only applies to 'api_dump' source.")
-
-class QueryRequest(BaseModel):
-    text: str = Field(..., description="The natural language query to search for.")
-    top_k: int = Field(5, description="The number of results to return (default: 5, max: 20).", ge=1, le=20)
-    filters: Optional[QueryFilters] = Field(None, description="Optional metadata filters to apply to the search.")
-
 class QueryResultPayload(BaseModel):
     page_content: str
     metadata: Dict[str, Any]
@@ -70,18 +60,20 @@ class DataTypesAndClassesResponse(BaseModel):
     data_types: List[str]
     classes: List[str]
 
-@mcp_server.tool()
+@mcp_server.resource("resource://roblox/engine-reference/query/{text}")
 async def roblox_engine_api_docs(
     ctx: Context[ServerSession, AppContext], # Inject context for logging/progress and app resources
-    text: str = Field(..., description="The natural language query to search for."),
-    top_k: int = Field(5, description="The number of results to return (default: 5, max: 20).", ge=1, le=20),
-    filters: Optional[QueryFilters] = Field(None, description="Optional metadata filters to apply to the search."),
+    text: str,
 ) -> QueryResponse:
     """
     Search the Roblox API documentation and API dump for information. Use this for general questions about Roblox API, classes, properties, functions, events, or code examples.
     """
+    # Set default values for parameters not in the URI
+    top_k = 5
+    filters = None
+
     if ctx:
-        await ctx.info(f"Received query for: {text} with top_k={top_k} and filters={filters}")
+        await ctx.info(f"Received query for: '{text}' with top_k={top_k}")
 
     app_ctx = ctx.request_context.lifespan_context
     qdrant_client = app_ctx.qdrant_client
@@ -137,24 +129,19 @@ async def roblox_engine_api_docs(
             await ctx.error(f"Error during query: {e}")
         raise HTTPException(status_code=500, detail=f"An internal error occurred: {e}")
 
-@mcp_server.resource("/roblox/types-and-classes")
-async def get_roblox_data_types_and_classes(
-    ctx: Context[ServerSession, AppContext], # Inject context for logging/progress and app resources
-) -> DataTypesAndClassesResponse:
+@mcp_server.resource("resource://roblox/engine-reference/datatypes-and-classes")
+async def get_roblox_data_types_and_classes() -> DataTypesAndClassesResponse:
     """
     Provides a list of all available Roblox API data types and class names. Use this to understand the full scope of Roblox API objects before formulating specific queries or if the user asks for a list of available types/classes.
     """
-    if ctx:
-        await ctx.info("Received request for Roblox data types and classes resource.")
+    print("Received request for Roblox data types and classes resource.")
 
-    app_ctx = ctx.request_context.lifespan_context
-    data_types_and_classes = app_ctx.data_types_and_classes
+    data_types_and_classes = app_state.get("data_types_and_classes")
 
     if not data_types_and_classes:
-        if ctx:
-            await ctx.error("Data types and classes not loaded in AppContext.")
+        print("Error: Data types and classes not loaded in app_state.")
         raise HTTPException(status_code=500, detail="Data types and classes not loaded.")
-    
+
     return DataTypesAndClassesResponse(
         data_types=data_types_and_classes.get("data_types", []),
         classes=data_types_and_classes.get("classes", [])
