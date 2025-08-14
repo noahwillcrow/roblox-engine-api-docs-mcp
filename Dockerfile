@@ -27,7 +27,8 @@ RUN apt-get update && apt-get install -y build-essential git && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml ./
-RUN poetry install --no-root
+RUN poetry install --no-root && \
+    rm -rf /root/.cache/pypoetry
 
 # --- Stage 3: Ingester ---
 # This stage runs the slow data ingestion process. It's cached as long as the ingestion code doesn't change.
@@ -42,7 +43,8 @@ ENV QDRANT_DATA_PATH="/app/qdrant_data"
 
 # Run the ingestion script
 RUN poetry run python -c "import nltk; nltk.download('punkt'); nltk.download('punkt_tab'); nltk.download('averaged_perceptron_tagger'); nltk.download('averaged_perceptron_tagger_eng'); nltk.download('stopwords'); nltk.download('wordnet'); nltk.download('omw-1.4'); nltk.download('maxent_ne_chunker'); nltk.download('words')"
-RUN poetry run python -m ingestion.main
+RUN poetry run python -m ingestion.main && \
+    rm -rf /usr/local/nltk_data
 
 # --- Stage 4: Final ---
 # This is the minimal production image.
