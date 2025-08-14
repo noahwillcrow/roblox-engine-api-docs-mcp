@@ -30,30 +30,18 @@ COPY pyproject.toml ./
 RUN poetry install --no-root && \
     rm -rf /root/.cache/pypoetry
 
-# --- Stage 3: Final ---
-# This is the minimal production image.
-FROM base as final
+# --- Stage 3: Ingester ---
+# This stage runs the slow data ingestion process. It's cached as long as the ingestion code doesn't change.
+FROM builder as ingester
 
 WORKDIR /app
 
-# Copy the installed dependencies from the builder stage
-COPY --from=builder /opt/poetry /opt/poetry
-COPY --from=builder /app/.venv /app/.venv
+COPY ./src /app/src
 
-# Copy the populated Qdrant database and data types/classes file from the pre-built ingestion image
-COPY --from=roblox-engine-api-docs-mcp-ingestion:latest /app/qdrant_data /app/qdrant_data
+# Set the data path for the Qdrant database
+ENV QDRANT_DATA_PATH="/app/qdrant_data"
 
-# Copy the project files
-COPY --from=builder /app/poetry.lock ./
-COPY --from=builder /app/pyproject.toml ./
-
-# Copy the API application code
-COPY ./src/mcp_server ./src/mcp_server
-
-# Set environment variables for the runtime
-ENV QDRANT_DATA_PATH="/app/qdrant_data" \
-    COLLECTION_NAME="roblox_api"
-
-EXPOSE 8000
-
-CMD ["uvicorn", "mcp_server.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run the ingestion script
+RUN poetry run python -c "import nltk; nltk.download('punkt'); nltk.download('punkt_tab'); nltk.download('averaged_perceptron_tagger'); nltk.download('averaged_perceptron_tagger_eng'); nltk.download('stopwords'); nltk.download('wordnet'); nltk.download('omw-1.4'); nltk.download('maxent_ne_chunker'); nltk.download('words')" && \
+    poetry run python -m ingestion.main && \
+    rm -rf /usr/local/nltk_data

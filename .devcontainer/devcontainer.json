@@ -20,5 +20,5 @@
       "version": "latest"
     }
   },
-  "postCreateCommand": ""
+  "postCreateCommand": "docker buildx install"
 }

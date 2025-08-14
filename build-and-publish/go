@@ -49,6 +49,16 @@ function command_check() {
 # Check for required commands
 command_check "docker"
 
+# Ensure a buildx builder is active
+if ! docker buildx inspect default &> /dev/null; then
+    echo "--- Creating a new Docker Buildx builder ---"
+    docker buildx create --name default || error_exit "Failed to create Docker Buildx builder."
+fi
+
+# Use the default builder
+echo "--- Using Docker Buildx builder ---"
+docker buildx use default || error_exit "Failed to use Docker Buildx builder."
+
 # Set poetry command path
 POETRY_CMD="poetry"
 if ! command -v "poetry" &amp;> /dev/null; then
@@ -88,13 +98,19 @@ if [ -z "$VERSION" ]; then
 fi
 echo "Roblox API Version: $VERSION"
 
-# Build the Docker Image
-echo "--- Building Docker Image ---"
-docker build -t "$DOCKERHUB_USERNAME/roblox-engine-api-docs-mcp-server:latest" -t "$DOCKERHUB_USERNAME/roblox-engine-api-docs-mcp-server:$VERSION" .
+# Build the Ingestion Docker Image (single platform)
+echo "--- Building Ingestion Docker Image ---"
+docker build -f Dockerfile.ingestion -t roblox-engine-api-docs-mcp-ingestion:latest .
 
-# Push the Docker Image
-echo "--- Pushing Docker Image to Docker Hub ---"
-docker push "$DOCKERHUB_USERNAME/roblox-engine-api-docs-mcp-server:latest"
-docker push "$DOCKERHUB_USERNAME/roblox-engine-api-docs-mcp-server:$VERSION"
+
+# Build the MCP Server Docker Image for multiple platforms
+echo "--- Building MCP Server Docker Image for multiple platforms ---"
+# Build and push the Docker image for multiple platforms using buildx
+# The --push flag automatically pushes the image to Docker Hub after building
+docker buildx build \
+    --platform linux/amd64,linux/arm64 \
+    -t "$DOCKERHUB_USERNAME/roblox-engine-api-docs-mcp-server:latest" \
+    -t "$DOCKERHUB_USERNAME/roblox-engine-api-docs-mcp-server:$VERSION" \
+    --push .
 
 echo "--- Docker image published successfully! ---"
