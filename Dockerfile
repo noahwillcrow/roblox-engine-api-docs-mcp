@@ -40,12 +40,6 @@ WORKDIR /app
 COPY --from=builder /opt/poetry /opt/poetry
 COPY --from=builder /app/.venv /app/.venv
 
-# Add the virtual environment's bin directory to the PATH to make executables like 'uvicorn' available.
-ENV PATH="/app/.venv/bin:$PATH"
-
-# Copy the populated Qdrant database from the local build context
-COPY ./qdrant_data /app/qdrant_data
-
 # Copy the project files
 COPY --from=builder /app/poetry.lock ./
 COPY --from=builder /app/pyproject.toml ./
@@ -53,10 +47,16 @@ COPY --from=builder /app/pyproject.toml ./
 # Copy the API application code
 COPY ./src/mcp_server ./src/mcp_server
 
+# Copy the populated Qdrant database from the local build context
+COPY ./qdrant_data /app/qdrant_data
+
 # Set environment variables for the runtime
 ENV QDRANT_DATA_PATH="/app/qdrant_data" \
     COLLECTION_NAME="roblox_api"
 
 EXPOSE 8000
+
+# Add the virtual environment's bin directory to the PATH to make executables like 'uvicorn' available.
+ENV PATH="/app/.venv/bin:$PATH"
 
 CMD ["uvicorn", "mcp_server.main:app", "--host", "0.0.0.0", "--port", "8000"]
