@@ -5,7 +5,7 @@ from langchain_community.embeddings import SentenceTransformerEmbeddings
 from langchain.docstore.document import Document
 
 from .sources import get_api_dump, get_creator_docs_path
-from .parsing import parse_api_dump, parse_markdown_documents, extract_data_types_and_classes
+from .parsing import parse_api_dump, parse_markdown_documents, parse_yaml_documents, extract_data_types_and_classes
 from .chunking import chunk_documents
 
 # --- Constants ---
@@ -31,7 +31,8 @@ def run_ingestion():
     print("\n--- Step 2: Parsing Documents and Extracting Metadata ---")
     api_docs = parse_api_dump(api_dump_data)
     md_docs = parse_markdown_documents(docs_path)
-    all_docs = api_docs + md_docs
+    yaml_docs = parse_yaml_documents(docs_path)
+    all_docs = api_docs + md_docs + yaml_docs
 
     # Extract and save data types and classes
     data_types_and_classes = extract_data_types_and_classes(docs_path)

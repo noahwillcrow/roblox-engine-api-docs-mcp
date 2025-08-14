@@ -2,6 +2,7 @@ from pathlib import Path
 from langchain_community.document_loaders import DirectoryLoader
 from langchain.docstore.document import Document
 import re
+import yaml
 
 # --- Constants ---
 UNWANTED_PATTERNS = [
@@ -178,6 +179,92 @@ if __name__ == '__main__':
             print(f"Sample MD doc content snippet:\n---\n{md_docs[50].page_content[:300]}...\n---")
         else:
             print("\nSkipping markdown parsing test: 'creator-docs' content not found.")
+
+def parse_yaml_documents(docs_path: Path) -> list[Document]:
+    """
+    Loads all YAML files from the 'reference/engine' subdirectories,
+    extracts relevant content, and returns them as a list of Document objects.
+
+    Args:
+        docs_path: The path to the 'content/en-us' directory within the
+                   cloned creator-docs repository.
+
+    Returns:
+        A list of Document objects from the YAML files.
+    """
+    print(f"Parsing YAML documents from: {docs_path}")
+    documents = []
+
+    reference_path = docs_path / "reference" / "engine"
+    
+    for sub_dir in ["classes", "datatypes", "libraries", "enums"]:
+        current_path = reference_path / sub_dir
+        if current_path.is_dir():
+            for file_path in current_path.glob("*.yaml"):
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        data = yaml.safe_load(f)
+                        
+                        # Extract relevant information from YAML
+                        name = data.get("name", file_path.stem)
+                        doc_type = data.get("type", sub_dir[:-1]) # 'class', 'datatype', 'library', or 'enum'
+                        summary = data.get("summary", "")
+                        description = data.get("description", "")
+                        
+                        content_parts = [f"Name: {name}", f"Type: {doc_type}"]
+                        if summary:
+                            content_parts.append(f"Summary: {summary}")
+                        if description:
+                            content_parts.append(f"Description: {description}")
+
+                        # Add properties, methods, functions, events, constructors, math_operations
+                        for section in ["properties", "methods", "functions", "events", "constructors", "math_operations", "items"]:
+                            if data.get(section):
+                                content_parts.append(f"\n--- {section.capitalize()} ---")
+                                for item in data[section]:
+                                    item_name = item.get("name", "Unnamed")
+                                    item_summary = item.get("summary", "")
+                                    item_description = item.get("description", "")
+                                    item_type = item.get("type", "")
+                                    
+                                    content_parts.append(f"{item_name} ({item_type}): {item_summary}")
+                                    if item_description:
+                                        content_parts.append(f"  {item_description}")
+                                    
+                                    if item.get("parameters"):
+                                        params = ", ".join([f"{p.get('name')}: {p.get('type')}" for p in item["parameters"]])
+                                        content_parts.append(f"  Parameters: ({params})")
+                                    if item.get("returns"):
+                                        returns = ", ".join([t.get('type') for t in item["returns"]])
+                                        content_parts.append(f"  Returns: {returns}")
+
+                        page_content = "\n".join(content_parts)
+                        
+                        metadata = {
+                            "source": "creator_docs_yaml",
+                            "file_path": str(file_path.relative_to(docs_path.parent.parent)),
+                            "type": doc_type,
+                            "name": name,
+                            "summary": summary,
+                            "inherits": data.get("inherits", []),
+                            "tags": data.get("tags", []),
+                            "deprecation_message": data.get("deprecation_message", ""),
+                            "security": data.get("security", {}),
+                            "thread_safety": data.get("thread_safety", ""),
+                            "category": data.get("category", ""),
+                            "serialization": data.get("serialization", {}),
+                            "capabilities": data.get("capabilities", [])
+                        }
+                        documents.append(Document(page_content=page_content.strip(), metadata=metadata))
+                except yaml.YAMLError as e:
+                    print(f"Error parsing YAML file {file_path}: {e}")
+                except Exception as e:
+                    print(f"An unexpected error occurred while processing {file_path}: {e}")
+        else:
+            print(f"Warning: Directory not found at {current_path}")
+
+    print(f"Parsed {len(documents)} documents from YAML files.")
+    return documents
 
 def extract_data_types_and_classes(creator_docs_path: Path) -> dict:
     """
