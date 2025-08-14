@@ -1,10 +1,9 @@
-version: '3.8'
-
 services:
   api:
     build:
       context: .
       dockerfile: Dockerfile
+      target: api
     ports:
       - "8000:8000"
     volumes:
@@ -15,19 +14,20 @@ services:
     environment:
       - QDRANT_DATA_PATH=/app/qdrant_data
       - COLLECTION_NAME=roblox_api
-    command: uvicorn roblox_api_rag.main:app --host 0.0.0.0 --port 8000 --reload
+    command: poetry run uvicorn roblox_api_rag.main:app --host 0.0.0.0 --port 8000 --reload
 
   ingestion:
     build:
       context: .
       dockerfile: Dockerfile
+      target: ingestion
     volumes:
       - ./src:/app/src
       - qdrant_data:/app/qdrant_data
     environment:
       - QDRANT_DATA_PATH=/app/qdrant_data
       - COLLECTION_NAME=roblox_api
-    command: python src/roblox_api_rag/ingestion/main.py
+    command: poetry run python -m roblox_api_rag.ingestion.main
 
 volumes:
   qdrant_data:
