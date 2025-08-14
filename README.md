@@ -1,72 +1,54 @@
 # Roblox API RAG
 
-This project provides a Retrieval-Augmented Generation (RAG) API for the Roblox engine. It ingests the official Roblox API dump and the Creator Documentation, creating a searchable vector database that can be queried to get relevant information about Roblox API classes, functions, properties, events, and documentation.
-
-## Features
-
-*   **Data Ingestion Pipeline**: Automatically fetches the latest Roblox API dump and Creator Documentation.
-*   **Vector Database**: Parses, chunks, and embeds the documentation into a Qdrant vector database.
-*   **Semantic Search API**: A FastAPI application that exposes an endpoint for performing semantic searches on the indexed data.
-*   **MCP Server**: Integrates with a Meta-Cognitive Process (MCP) server, exposing the search functionality as a tool for other systems (e.g., AI agents).
-*   **Data Filtering**: Allows for filtering search results by source (API dump or creator docs), class name, and member type.
-
-## Architecture Overview
-
-The project is composed of two main services: the **Ingestion Service** and the **API Service**. For a more detailed explanation of each service, please see the `README.md` files in the following directories:
-
-*   `src/ingestion/README.md`
-*   `src/mcp_server/README.md`
+This project provides a Retrieval-Augmented Generation (RAG) API for the Roblox engine, packaged as a convenient Docker image.
 
 ## Getting Started
 
 ### Prerequisites
 
-*   Python 3.8+
-*   Poetry for dependency management
-*   Docker and Docker Compose
+*   [Docker](https://www.docker.com/get-started)
 
-### Installation
+### Running the Service
 
-1.  **Clone the repository:**
+1.  **Pull the Docker image:**
 
-    ```bash
-    git clone https://github.com/your-username/roblox-api-rag.git
-    cd roblox-api-rag
-    ```
-
-2.  **Install dependencies using Poetry:**
+    Pull the latest image from DockerHub. You can also pull a specific version by replacing `latest` with a Roblox version number (e.g., `v0.618.0.6180446`).
 
     ```bash
-    poetry install
+    docker pull noahwillcrowdocker/roblox-engine-api-docs-mcp-server:latest
     ```
 
-### Running the Services
+2.  **Run the container:**
 
-The services are managed using Docker Compose.
-
-1.  **Build and run the services:**
+    Start the container, mapping the service's internal port 8000 to a local port.
+    You can specify the host port by setting the `ROBLOX_API_MCP_HOST_PORT` environment variable.
+    If `ROBLOX_API_MCP_HOST_PORT` is not set, it defaults to `8000`.
 
     ```bash
-    docker-compose up --build
+    # To run on the default port 8000:
+    docker run -d -p 8000:8000 --name roblox-engine-api-docs-mcp-server noahwillcrowdocker/roblox-engine-api-docs-mcp-server:latest
+
+    # To run on a custom port, e.g., 9000:
+    docker run -d -p 9000:8000 -e ROBLOX_API_MCP_HOST_PORT=9000 --name roblox-engine-api-docs-mcp-server noahwillcrowdocker/roblox-engine-api-docs-mcp-server:latest
     ```
 
-    This will start the following services:
-    *   `qdrant`: The Qdrant vector database.
-    *   `ingestion`: The data ingestion service. This service will run once to populate the database and then exit.
-    *   `api`: The FastAPI application.
+    The service will now be running and accessible at `http://localhost:<YOUR_HOST_PORT>`.
+    For example, if you used port 9000, it would be `http://localhost:9000`.
 
-## Usage
+## Usage for AI Agents (Cursor & Roo Cline)
 
-### MCP Server
+The service exposes a Meta-Cognitive Process (MCP) server with a tool that AI agents can use to query the Roblox API and documentation.
 
-The MCP server is mounted at `/mcp` and is available for interaction with other agents. The server exposes a `query_roblox_api_rag` tool that can be used to query the RAG system.
+### Registering the Tool
 
-## Configuration
+To allow an agent like Cursor or Roo Cline to use this service, you need to register the `roblox_engine_api_docs` tool.
 
-The application can be configured using environment variables. You can create a `.env` file in the root of the project to set these variables.
+1.  **Tool Name**: `roblox_engine_api_docs`
+2.  **API Endpoint**: The MCP server is available at `http://localhost:<YOUR_HOST_PORT>/mcp/`.
+3.  **OpenAPI Schema**: The agent can find the tool's definition at `http://localhost:<YOUR_HOST_PORT>/openapi.json`.
 
-| Variable          | Description                                       | Default                |
-| ----------------- | ------------------------------------------------- | ---------------------- |
-| `QDRANT_DATA_PATH`  | The path to the Qdrant data directory.            | `./qdrant_data`        |
-| `EMBEDDING_MODEL`   | The sentence transformer model to use for embeddings. | `all-MiniLM-L6-v2`     |
-| `COLLECTION_NAME`   | The name of the Qdrant collection.                | `roblox_api`           |
+You would typically provide this information in the agent's configuration or tool registration interface. For example, if you are running the service on port 9000, you might tell the agent:
+
+> "You have a new tool available: `roblox_engine_api_docs`. You can access its OpenAPI schema at `http://localhost:9000/openapi.json` and interact with it via the MCP server at `http://localhost:9000/mcp/`."
+
+The agent can then inspect the schema to understand how to use the tool's parameters for searching the Roblox API knowledge base.

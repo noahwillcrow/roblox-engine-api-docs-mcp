@@ -54,7 +54,7 @@ async def lifespan(app: FastAPI):
 
 # --- FastAPI App Initialization ---
 app = FastAPI(
-    title="Roblox API RAG",
+    title="Roblox Engine API Docs MCP Server",
     description="A RAG API for the Roblox engine, pre-loaded with API and documentation.",
     version="1.0.0",
     lifespan=lifespan
@@ -69,4 +69,4 @@ app.mount("/mcp", mcp_server.create_app())
 # --- Root Endpoint ---
 @app.get("/", include_in_schema=False)
 def read_root():
-    return {"message": "Welcome to the Roblox API RAG. See /docs for API documentation or /mcp for the MCP interface."}
+    return {"message": "Welcome to the Roblox Engine API Docs MCP Server. See /docs for API documentation or /mcp for the MCP interface."}

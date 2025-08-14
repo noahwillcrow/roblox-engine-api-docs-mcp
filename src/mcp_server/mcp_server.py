@@ -38,10 +38,10 @@ async def mcp_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
 
 # Initialize FastMCP server with lifespan
 mcp_server = FastMCP(
-    "Roblox API RAG",
+    "Roblox Engine API Docs MCP Server",
     lifespan=mcp_lifespan,
-    title="Roblox API RAG MCP",
-    description="An MCP server for the Roblox API RAG.",
+    title="Roblox Engine API Docs MCP Server",
+    description="An MCP server for the Roblox Engine API Documentation.",
     version="1.0.0"
 )
 
@@ -74,7 +74,7 @@ class DataTypesAndClassesResponse(BaseModel):
     classes: List[str]
 
 @mcp_server.tool()
-async def query_roblox_api_rag(
+async def roblox_engine_api_docs(
     ctx: Context[ServerSession, AppContext], # Inject context for logging/progress and app resources
     text: str = Field(..., description="The natural language query to search for."),
     top_k: int = Field(5, description="The number of results to return (default: 5, max: 20).", ge=1, le=20),

@@ -6,8 +6,7 @@ services:
       target: final
     working_dir: /app
     ports:
-      - "8000:8000"
-      - "8001:8001" # Port for MCP server
+      - "${ROBLOX_API_MCP_HOST_PORT:-8000}:8000" # Host port can be configured via ROBLOX_API_MCP_HOST_PORT environment variable, defaults to 8000
     volumes:
       # Mount the source code for hot-reloading
       - ./src:/app/src
@@ -16,6 +15,7 @@ services:
     environment:
       - QDRANT_DATA_PATH=/app/qdrant_data
       - COLLECTION_NAME=roblox_api
+      - ROBLOX_API_MCP_HOST_PORT=${ROBLOX_API_MCP_HOST_PORT:-8000} # Pass ROBLOX_API_MCP_HOST_PORT to the container for reference if needed
     command: poetry run uvicorn mcp_server.main:app --host 0.0.0.0 --port 8000 --reload --app-dir src
 
   ingestion:
