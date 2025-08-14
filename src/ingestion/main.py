@@ -1,8 +1,10 @@
 import os
 import uuid
+import shutil
+import json
+from pathlib import Path
 from qdrant_client import QdrantClient, models
 from langchain_community.embeddings import SentenceTransformerEmbeddings
-from langchain.docstore.document import Document
 
 from .sources import get_api_dump, get_creator_docs_path
 from .parsing import parse_api_dump, parse_markdown_documents, parse_yaml_documents, extract_data_types_and_classes
@@ -104,7 +106,6 @@ def run_ingestion():
     
     # 5. Cleanup
     print("\n--- Step 5: Cleaning up temporary files ---")
-    import shutil
     shutil.rmtree(docs_path.parent.parent)
     print(f"Cleaned up temporary directory: {docs_path.parent.parent}")
 
