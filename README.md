@@ -1,115 +1,54 @@
-# Roblox API RAG Agent Knowledge Base
+# Roblox API RAG
 
-This project provides a self-contained system for ingesting Roblox API documentation into a vector database and exposing it through a retrieval-focused API. It is designed to serve as a knowledge base for LLM agents like Roo Code, enabling them to access up-to-date and accurate information about the Roblox API.
+This project provides a Retrieval-Augmented Generation (RAG) API for the Roblox engine, packaged as a convenient Docker image.
 
-## 1. System Architecture
-
-The system is a multi-container application orchestrated by Docker Compose, consisting of the following services:
-
-*   **`scraper-service`**: A Python container that periodically fetches, processes, and embeds Roblox documentation from the official JSON API dump and the Creator Hub.
-*   **`vector-db-service`**: A Qdrant container for persistent vector storage and retrieval.
-*   **`rag-api-service`**: A Python FastAPI container that exposes a retrieval-focused API for LLM agents.
-*   **`mcp-server-service`**: A Python container running the MCP server to provide a tool for Roo Code.
-
-## 2. Technology Stack
-
-*   **Container Orchestration**: Docker Compose
-*   **Data Sources**: Roblox JSON API Dump, Creator Hub
-*   **Web Scraping**: Scrapy
-*   **Scheduling**: APScheduler
-*   **Vector Database**: Qdrant
-*   **Data Ingestion/Chunking**: LlamaIndex
-*   **API Framework**: FastAPI
-*   **Agent Integration**: MCP Server
-
-## 3. Setup and Configuration
+## Getting Started
 
 ### Prerequisites
 
-*   Docker and Docker Compose
-*   Git
-*   Poetry for Python dependency management
+*   [Docker](https://www.docker.com/get-started)
 
-### Installation
+### Running the Service
 
-1.  **Clone the repository:**
+1.  **Pull the Docker image:**
+
+    Pull the latest image from DockerHub. You can also pull a specific version by replacing `latest` with a Roblox version number (e.g., `v0.618.0.6180446`).
+
     ```bash
-    git clone <repository_url>
-    cd roblox-api-rag
+    docker pull noahwillcrowdocker/roblox-engine-api-docs-mcp-server:latest
     ```
 
-2.  **Configure the environment:**
-    Copy the `.env.example` file to `.env` and populate it with your API keys.
+2.  **Run the container:**
+
+    Start the container, mapping the service's internal port 8000 to a local port.
+    You can specify the host port by setting the `ROBLOX_API_MCP_HOST_PORT` environment variable.
+    If `ROBLOX_API_MCP_HOST_PORT` is not set, it defaults to `8000`.
+
     ```bash
-    cp .env.example .env
+    # To run on the default port 8000:
+    docker run -d -p 8000:8000 --name roblox-engine-api-docs-mcp-server noahwillcrowdocker/roblox-engine-api-docs-mcp-server:latest
+
+    # To run on a custom port, e.g., 9000:
+    docker run -d -p 9000:8000 -e ROBLOX_API_MCP_HOST_PORT=9000 --name roblox-engine-api-docs-mcp-server noahwillcrowdocker/roblox-engine-api-docs-mcp-server:latest
     ```
 
-3.  **Install Python dependencies:**
-    ```bash
-    poetry install
-    ```
+    The service will now be running and accessible at `http://localhost:<YOUR_HOST_PORT>`.
+    For example, if you used port 9000, it would be `http://localhost:9000`.
 
-## 4. Operational Guide
+## Usage for AI Agents (Cursor & Roo Cline)
 
-### Building and Starting the System
+The service exposes a Meta-Cognitive Process (MCP) server with a tool that AI agents can use to query the Roblox API and documentation.
 
-To build and start all services, run the following command:
+### Registering the Tool
 
-```bash
-docker compose up --build -d
-```
+To allow an agent like Cursor or Roo Cline to use this service, you need to register the `roblox_engine_api_docs` tool.
 
-### Triggering an Initial Scrape
+1.  **Tool Name**: `roblox_engine_api_docs`
+2.  **API Endpoint**: The MCP server is available at `http://localhost:<YOUR_HOST_PORT>/mcp/`.
+3.  **OpenAPI Schema**: The agent can find the tool's definition at `http://localhost:<YOUR_HOST_PORT>/openapi.json`.
 
-The scraper service is scheduled to run daily. To trigger an initial scrape manually, run the following command:
+You would typically provide this information in the agent's configuration or tool registration interface. For example, if you are running the service on port 9000, you might tell the agent:
 
-```bash
-docker compose exec scraper python scraper/main.py
-```
+> "You have a new tool available: `roblox_engine_api_docs`. You can access its OpenAPI schema at `http://localhost:9000/openapi.json` and interact with it via the MCP server at `http://localhost:9000/mcp/`."
 
-### Querying the API
-
-You can query the RAG API directly by sending a POST request to `http://localhost:8000/retrieve`.
-
-**Example using `curl`:**
-
-```bash
-curl -X POST "http://localhost:8000/retrieve" \
--H "Content-Type: application/json" \
--d '{"query": "How do I create a part in Roblox?"}'
-```
-
-### Stopping the System
-
-To stop all services and remove the containers, run:
-
-```bash
-docker compose down -v
-```
-
-## 5. Project Structure
-
-```
-.
-├── app/                # RAG API Service (FastAPI)
-│   ├── main.py
-│   ├── models.py
-│   ├── retriever.py
-│   └── logging_config.py
-├── scraper/            # Scraper Service
-│   ├── main.py
-│   ├── roblox_api.py
-│   ├── chunking.py
-│   ├── vector_db.py
-│   └── spiders/
-│       └── creator_hub_spider.py
-├── mcp_server/         # MCP Server for Roo Code integration
-│   └── main.py
-├── knowledge-database/ # Documentation and notes about the data
-├── llm-notes/          # Technical specifications and TODOs
-├── .gitignore
-├── docker-compose.yml
-├── Dockerfile
-├── poetry.lock
-├── pyproject.toml
-└── README.md
+The agent can then inspect the schema to understand how to use the tool's parameters for searching the Roblox API knowledge base.
