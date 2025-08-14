@@ -39,7 +39,7 @@ COPY ./src /app/src
 ENV QDRANT_DATA_PATH="/app/qdrant_data"
 
 # Run the ingestion script
-RUN python -m roblox_api_rag.ingestion.main
+RUN poetry run python -m roblox_api_rag.ingestion.main
 
 # --- Stage 4: Final ---
 # This is the minimal production image.
