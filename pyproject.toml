@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "roblox-api-rag"
+name = "roblox-engine-api-docs-mcp"
 version = "0.1.0"
-description = "A RAG API for the Roblox engine API and documentation, packaged as a self-contained Docker image."
+description = "This project provides a Retrieval-Augmented Generation (RAG) API for the Roblox engine, packaged as a convenient Docker image and exposed via [MCP](https://modelcontextprotocol.io/)."
 authors = ["Roo"]
 readme = "README.md"
 license = "MIT"
@@ -20,6 +20,9 @@ langchain-core = "^0.1.45"
 python-multipart = "^0.0.9"
 pydantic-settings = "^2.2.1"
 mcp = "*" # Allow any version for now to resolve dependency
+
+[tool.poetry.packages]
+include = [{ "include" = "src", "from" = "." }]
 
 [build-system]
 requires = ["poetry-core"]
