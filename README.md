@@ -1,6 +1,6 @@
-# Roblox API RAG
+# Roblox Engine API Docs MCP
 
-This project provides a Retrieval-Augmented Generation (RAG) API for the Roblox engine, packaged as a convenient Docker image.
+This project provides a Retrieval-Augmented Generation (RAG) API for the Roblox engine, packaged as a convenient Docker image and exposed via [MCP](https://modelcontextprotocol.io/).
 
 ## Getting Started
 
