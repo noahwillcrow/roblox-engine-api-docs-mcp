@@ -39,10 +39,7 @@ async def mcp_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
 # Initialize FastMCP server with lifespan
 mcp_server = FastMCP(
     "Roblox Engine API Docs MCP Server",
-    lifespan=mcp_lifespan,
-    title="Roblox Engine API Docs MCP Server",
-    description="An MCP server for the Roblox Engine API Documentation.",
-    version="1.0.0"
+    lifespan=mcp_lifespan
 )
 
 # Define Pydantic models for tool inputs/outputs if they are not already defined elsewhere
