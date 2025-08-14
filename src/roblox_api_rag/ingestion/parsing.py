@@ -48,7 +48,13 @@ def parse_api_dump(api_dump_data: dict) -> list[Document]:
                 else:
                     content_lines.append("Parameters: ()")
                 # Handle return type
-                return_type = member.get("ReturnType", {}).get("Name", "void")
+                return_type_data = member.get("ReturnType")
+                if isinstance(return_type_data, list):
+                    # If it's a list, join the names of the types
+                    return_type = ", ".join([t.get("Name", "void") for t in return_type_data])
+                else:
+                    # Otherwise, treat it as a dictionary
+                    return_type = return_type_data.get("Name", "void")
                 content_lines.append(f"Returns: {return_type}")
 
             elif member_type == "Property":
