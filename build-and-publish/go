@@ -1,0 +1,100 @@
+#!/bin/bash
+
+# A script to build and publish the Docker image for the Roblox Engine API Docs MCP Server.
+#
+# This script is a consolidation of the steps formerly found in `LOCAL_BUILD.md`.
+# It provides a parameterized way to build and publish the Docker image to Docker Hub.
+#
+# Usage:
+#   ./build-and-publish/go DOCKERHUB_USERNAME [DOCKERHUB_PASSWORD_OR_PAT]
+#
+# Arguments:
+#   DOCKERHUB_USERNAME: Your Docker Hub username. (Required)
+#   DOCKERHUB_PASSWORD_OR_PAT: Your Docker Hub password or Personal Access Token. (Optional)
+#                            If not provided, you will be prompted to enter it.
+
+set -eo pipefail
+
+# --- Functions ---
+
+# Function to print error messages and exit
+#
+# Globals:
+#   None
+# Arguments:
+#   $1: The error message to print.
+# Returns:
+#   None
+function error_exit() {
+    echo "Error: $1" >&2
+    exit 1
+}
+
+# Function to check for the presence of a command.
+#
+# Globals:
+#   None
+# Arguments:
+#   $1: The command to check for.
+# Returns:
+#   None
+function command_check() {
+    if ! command -v "$1" &> /dev/null; then
+        error_exit "$1 is not installed. Please install it to continue."
+    fi
+}
+
+# --- Main Script ---
+
+# Check for required commands
+command_check "docker"
+
+# Set poetry command path
+POETRY_CMD="poetry"
+if ! command -v "poetry" &amp;> /dev/null; then
+    echo "--- Poetry not found, installing... ---"
+    if ! curl -sSL https://install.python-poetry.org | python -; then
+        error_exit "Failed to install poetry."
+    fi
+    POETRY_CMD="$HOME/.local/bin/poetry"
+fi
+
+# Install dependencies for version script
+echo "--- Installing script dependencies via Poetry ---"
+if ! "$POETRY_CMD" install --only versioning; then
+    error_exit "Failed to install dependencies with poetry."
+fi
+
+# Check for required arguments
+if [ -z "$1" ]; then
+    error_exit "Docker Hub username is required. Usage: ./build-and-publish/go DOCKERHUB_USERNAME [DOCKERHUB_PASSWORD_OR_PAT]"
+fi
+
+DOCKERHUB_USERNAME="$1"
+DOCKERHUB_PASSWORD_OR_PAT="$2"
+
+# Log in to Docker Hub
+if [ -n "$DOCKERHUB_PASSWORD_OR_PAT" ]; then
+    echo "$DOCKERHUB_PASSWORD_OR_PAT" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
+else
+    docker login --username "$DOCKERHUB_USERNAME"
+fi
+
+# Get the Roblox API Version
+echo "--- Getting Roblox API Version ---"
+VERSION=$("$POETRY_CMD" run python src/scripts/get_roblox_version.py)
+if [ -z "$VERSION" ]; then
+    error_exit "Failed to get Roblox API Version."
+fi
+echo "Roblox API Version: $VERSION"
+
+# Build the Docker Image
+echo "--- Building Docker Image ---"
+docker build -t "$DOCKERHUB_USERNAME/roblox-engine-api-docs-mcp-server:latest" -t "$DOCKERHUB_USERNAME/roblox-engine-api-docs-mcp-server:$VERSION" .
+
+# Push the Docker Image
+echo "--- Pushing Docker Image to Docker Hub ---"
+docker push "$DOCKERHUB_USERNAME/roblox-engine-api-docs-mcp-server:latest"
+docker push "$DOCKERHUB_USERNAME/roblox-engine-api-docs-mcp-server:$VERSION"
+
+echo "--- Docker image published successfully! ---"
