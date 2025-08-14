@@ -1,0 +1,46 @@
+#!/bin/bash
+
+# A script to run the ingestion process locally, creating the qdrant_data directory.
+# This script should be run before building the main Docker image to ensure the data is available.
+
+set -eo pipefail
+
+# --- Functions ---
+
+# Function to print error messages and exit
+function error_exit() {
+    echo "Error: $1" >&2
+    exit 1
+}
+
+# Function to check for the presence of a command.
+function command_check() {
+    if ! command -v "$1" &> /dev/null; then
+        error_exit "$1 is not installed. Please install it to continue."
+    fi
+}
+
+# --- Main Script ---
+
+# Check for required commands
+command_check "poetry"
+
+# Install dependencies
+echo "--- Installing ingestion dependencies via Poetry ---"
+if ! poetry install; then
+    error_exit "Failed to install dependencies with poetry."
+fi
+
+# Download NLTK data
+echo "--- Downloading NLTK data ---"
+if ! poetry run python -c "import nltk; nltk.download('punkt'); nltk.download('punkt_tab'); nltk.download('averaged_perceptron_tagger'); nltk.download('averaged_perceptron_tagger_eng'); nltk.download('stopwords'); nltk.download('wordnet'); nltk.download('omw-1.4'); nltk.download('maxent_ne_chunker'); nltk.download('words')"; then
+    error_exit "Failed to download NLTK data."
+fi
+
+# Run the ingestion script
+echo "--- Running local ingestion script ---"
+if ! poetry run python -m src.ingestion.main; then
+    error_exit "Failed to run ingestion script."
+fi
+
+echo "--- Local ingestion complete. 'qdrant_data' directory is ready. ---"

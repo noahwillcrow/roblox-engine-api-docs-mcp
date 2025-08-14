@@ -40,8 +40,11 @@ WORKDIR /app
 COPY --from=builder /opt/poetry /opt/poetry
 COPY --from=builder /app/.venv /app/.venv
 
-# Copy the populated Qdrant database and data types/classes file from the pre-built ingestion image
-COPY --from=roblox-engine-api-docs-mcp-ingestion:latest /app/qdrant_data /app/qdrant_data
+# Add the virtual environment's bin directory to the PATH to make executables like 'uvicorn' available.
+ENV PATH="/app/.venv/bin:$PATH"
+
+# Copy the populated Qdrant database from the local build context
+COPY ./qdrant_data /app/qdrant_data
 
 # Copy the project files
 COPY --from=builder /app/poetry.lock ./

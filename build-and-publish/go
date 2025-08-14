@@ -12,8 +12,8 @@
 #   DOCKERHUB_USERNAME: Your Docker Hub username. (Required)
 #   DOCKERHUB_PASSWORD_OR_PAT: Your Docker Hub password or Personal Access Token. (Optional)
 #                            If not provided, you will be prompted to enter it.
-#   --skip-ingestion: (Optional) If provided, the script will skip building the ingestion Docker image.
-#                     This assumes a pre-built 'roblox-engine-api-docs-mcp-ingestion:latest' image is available locally.
+#   --force-ingestion: (Optional) If provided, the script will remove any existing 'qdrant_data' directory
+#                      and run the local ingestion script before building the main image.
 
 set -eo pipefail
 
@@ -52,14 +52,17 @@ function command_check() {
 command_check "docker"
 
 # Ensure a buildx builder is active
-if ! docker buildx inspect default &> /dev/null; then
-    echo "--- Creating a new Docker Buildx builder ---"
-    docker buildx create --name default || error_exit "Failed to create Docker Buildx builder."
+echo "--- Ensuring Docker Buildx builder is correctly configured ---"
+# Create a new builder with a unique name and the docker-container driver
+BUILDER_NAME="mcp-builder"
+if ! docker buildx inspect "$BUILDER_NAME" &> /dev/null; then
+    echo "--- Creating a new Docker Buildx builder: $BUILDER_NAME ---"
+    docker buildx create --name "$BUILDER_NAME" --driver docker-container || error_exit "Failed to create Docker Buildx builder."
 fi
 
-# Use the default builder
-echo "--- Using Docker Buildx builder ---"
-docker buildx use default || error_exit "Failed to use Docker Buildx builder."
+# Use the custom builder
+echo "--- Using Docker Buildx builder: $BUILDER_NAME ---"
+docker buildx use "$BUILDER_NAME" || error_exit "Failed to use Docker Buildx builder."
 
 # Set poetry command path
 POETRY_CMD="poetry"
@@ -84,12 +87,12 @@ fi
 
 DOCKERHUB_USERNAME=""
 DOCKERHUB_PASSWORD_OR_PAT=""
-SKIP_INGESTION=false
+FORCE_INGESTION=false
 
 for arg in "$@"; do
     case $arg in
-        --skip-ingestion)
-            SKIP_INGESTION=true
+        --force-ingestion)
+            FORCE_INGESTION=true
             shift
             ;;
         *)
@@ -105,7 +108,7 @@ done
 
 # Check for required arguments after parsing flags
 if [ -z "$DOCKERHUB_USERNAME" ]; then
-    error_exit "Docker Hub username is required. Usage: ./build-and-publish/go DOCKERHUB_USERNAME [DOCKERHUB_PASSWORD_OR_PAT] [--skip-ingestion]"
+    error_exit "Docker Hub username is required. Usage: ./build-and-publish/go DOCKERHUB_USERNAME [DOCKERHUB_PASSWORD_OR_PAT] [--force-ingestion]"
 fi
 
 # Log in to Docker Hub
@@ -123,16 +126,18 @@ if [ -z "$VERSION" ]; then
 fi
 echo "Roblox API Version: $VERSION"
 
-if [ "$SKIP_INGESTION" = false ]; then
-    # Build the Ingestion Docker Image (single platform)
-    echo "--- Building Ingestion Docker Image ---"
-    docker build -f Dockerfile.ingestion -t roblox-engine-api-docs-mcp-ingestion:latest .
-else
-    echo "--- Skipping Ingestion Docker Image build as --skip-ingestion flag is set ---"
-    echo "--- Ensuring 'roblox-engine-api-docs-mcp-ingestion:latest' image exists locally ---"
-    if ! docker image inspect roblox-engine-api-docs-mcp-ingestion:latest &> /dev/null; then
-        error_exit "Ingestion image 'roblox-engine-api-docs-mcp-ingestion:latest' not found locally. Please build it or remove --skip-ingestion flag."
+if [ "$FORCE_INGESTION" = true ]; then
+    echo "--- Force ingestion flag set, running local ingestion script ---"
+    if [ -d "qdrant_data" ]; then
+        echo "--- Removing existing qdrant_data directory ---"
+        rm -rf "qdrant_data"
     fi
+    ./build-and-publish/ingest-locally || error_exit "Local ingestion failed."
+fi
+
+# Check for the qdrant_data directory
+if [ ! -d "qdrant_data" ]; then
+    error_exit "'qdrant_data' directory not found. Please run './build-and-publish/ingest-locally' or use the --force-ingestion flag."
 fi
 
 
@@ -144,6 +149,7 @@ docker buildx build \
     --platform linux/amd64,linux/arm64 \
     -t "$DOCKERHUB_USERNAME/roblox-engine-api-docs-mcp-server:latest" \
     -t "$DOCKERHUB_USERNAME/roblox-engine-api-docs-mcp-server:$VERSION" \
+    --pull \
     --push .
 
 echo "--- Docker image published successfully! ---"

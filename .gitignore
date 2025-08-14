@@ -108,3 +108,5 @@ poetry.lock
 .vscode/
 # Qdrant data
 qdrant_data/
+# Qdrant data
+qdrant_data/
