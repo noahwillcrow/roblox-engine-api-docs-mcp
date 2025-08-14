@@ -64,7 +64,7 @@ app = FastAPI(
 # --- Mount MCP Server ---
 # Mount the FastMCP server at the /mcp path.
 # This makes the MCP interface available at http://localhost:8000/mcp
-app.mount("/mcp", mcp_server.create_app())
+app.mount("/mcp", mcp_server)
 
 # --- Root Endpoint ---
 @app.get("/", include_in_schema=False)
