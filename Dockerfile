@@ -8,7 +8,8 @@ ENV PYTHONUNBUFFERED=1 \
     POETRY_VIRTUALENVS_IN_PROJECT=true \
     POETRY_HOME="/opt/poetry" \
     PATH="/opt/poetry/bin:$PATH" \
-    PYTHONPATH="/app/src:$PYTHONPATH"
+    PYTHONPATH="/app/src:$PYTHONPATH" \
+    NLTK_DATA="/usr/local/nltk_data"
 
 # Install poetry
 RUN apt-get update && apt-get install -y curl && \
@@ -40,6 +41,7 @@ COPY ./src /app/src
 ENV QDRANT_DATA_PATH="/app/qdrant_data"
 
 # Run the ingestion script
+RUN poetry run python -c "import nltk; nltk.download('punkt_tab')"
 RUN poetry run python -m roblox_api_rag.ingestion.main
 
 # --- Stage 4: Final ---
