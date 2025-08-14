@@ -34,12 +34,13 @@ def run_ingestion():
     all_docs = api_docs + md_docs
 
     # Extract and save data types and classes
-    data_types_and_classes = extract_data_types_and_classes(api_dump_data)
+    data_types_and_classes = extract_data_types_and_classes(docs_path)
     data_types_classes_file = Path(QDRANT_DATA_PATH) / "data_types_and_classes.json"
     os.makedirs(Path(QDRANT_DATA_PATH), exist_ok=True)
     with open(data_types_classes_file, "w") as f:
         json.dump(data_types_and_classes, f, indent=2)
     print(f"Saved data types and classes to {data_types_classes_file}")
+
 
     # 3. Chunk Documents
     print("\n--- Step 3: Chunking Documents ---")

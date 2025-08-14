@@ -178,3 +178,46 @@ if __name__ == '__main__':
             print(f"Sample MD doc content snippet:\n---\n{md_docs[50].page_content[:300]}...\n---")
         else:
             print("\nSkipping markdown parsing test: 'creator-docs' content not found.")
+
+def extract_data_types_and_classes(creator_docs_path: Path) -> dict:
+    """
+    Extracts data types and classes from the creator docs reference directories.
+
+    Args:
+        creator_docs_path: The path to the 'content/en-us' directory within the
+                           cloned creator-docs repository.
+
+    Returns:
+        A dictionary containing extracted data types and classes.
+    """
+    print("Extracting data types and classes from creator docs...")
+    data_types = []
+    classes = []
+
+    # Paths to the reference directories
+    reference_path = creator_docs_path / "reference" / "engine"
+    classes_path = reference_path / "classes"
+    datatypes_path = reference_path / "datatypes"
+
+    # Extract class names
+    if classes_path.is_dir():
+        for file_path in classes_path.glob("*.yaml"):
+            classes.append(file_path.stem)
+    else:
+        print(f"Warning: Classes directory not found at {classes_path}")
+
+    # Extract data type names
+    if datatypes_path.is_dir():
+        for file_path in datatypes_path.glob("*.yaml"):
+            data_types.append(file_path.stem)
+    else:
+        print(f"Warning: DataTypes directory not found at {datatypes_path}")
+
+    print("Finished extracting data types and classes.")
+    return {
+        "data_types": sorted(list(set(data_types))), # Use set for uniqueness and sort for consistency
+        "classes": sorted(list(set(classes)))
+    }
+
+    print("Finished extracting data types and classes.")
+    return data_types_and_classes
