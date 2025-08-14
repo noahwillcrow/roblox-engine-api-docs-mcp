@@ -31,13 +31,12 @@ RUN /bin/bash -c "groupadd --gid $USER_GID $USERNAME && \
 WORKDIR /app
 
 # Copy poetry configuration files
-COPY poetry.lock pyproject.toml ./
+COPY pyproject.toml ./
 
 # Install project dependencies
 # The postCreateCommand in devcontainer.json will handle `poetry install --no-root`
 # This is just to ensure the image has the dependencies if built standalone
-RUN poetry config virtualenvs.create false && \
-    poetry install --no-dev --no-interaction --no-ansi || true
+RUN poetry config virtualenvs.create false
 
 # Switch to the non-root user
 USER $USERNAME
