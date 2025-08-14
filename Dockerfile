@@ -62,9 +62,7 @@ COPY --from=builder /app/poetry.lock ./
 COPY --from=builder /app/pyproject.toml ./
 
 # Copy the API application code
-COPY ./src/mcp_server/main.py ./src/mcp_server/main.py
-COPY ./src/mcp_server/api ./src/mcp_server/api
-COPY ./src/mcp_server/mcp ./src/mcp_server/mcp
+COPY ./src/mcp_server ./src/mcp_server
 
 # Set environment variables for the runtime
 ENV QDRANT_DATA_PATH="/app/qdrant_data" \
