@@ -12,7 +12,7 @@ from langchain_community.embeddings import SentenceTransformerEmbeddings
 from mcp.server.fastmcp import FastMCP, Context
 from mcp.server.session import ServerSession
 
-from ..state import app_state
+from .state import app_state
 
 @dataclass
 class AppContext:

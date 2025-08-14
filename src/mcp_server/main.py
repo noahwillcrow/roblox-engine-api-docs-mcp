@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from qdrant_client import QdrantClient
 from langchain_community.embeddings import SentenceTransformerEmbeddings
 
-from .mcp.server import mcp_server
+from .mcp_server import mcp_server
 from .state import app_state
 
 # --- Constants ---
@@ -60,17 +60,6 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# --- Dependency Injection Overrides ---
-# These functions provide the actual resource instances to the API endpoints.
-
-def get_qdrant_client_override():
-    return app_state.get("qdrant_client")
-
-def get_embedding_model_override():
-    return app_state.get("embedding_model")
-
-def get_collection_name_override():
-    return app_state.get("collection_name")
 
 # --- Mount MCP Server ---
 # Mount the FastMCP server at the /mcp path.
