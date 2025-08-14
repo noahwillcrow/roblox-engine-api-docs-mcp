@@ -58,8 +58,8 @@ COPY --from=builder /app/.venv /app/.venv
 COPY --from=ingester /app/qdrant_data /app/qdrant_data
 
 # Copy the project files
-COPY --from=builder poetry.lock ./
-COPY --from=builder pyproject.toml ./
+COPY --from=builder /app/poetry.lock ./
+COPY --from=builder /app/pyproject.toml ./
 
 # Copy the API application code
 COPY ./src/roblox_api_rag/main.py ./src/roblox_api_rag/main.py
