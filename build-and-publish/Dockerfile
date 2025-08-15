@@ -29,26 +29,26 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN \
     apt-get update && \
     apt-get install -y --no-install-recommends \
-        ca-certificates \
-        curl \
-        gnupg \
-        lsb-release \
-        bash \
-        gfortran \
-        libopenblas-dev \
-        liblapack-dev \
-        build-essential \
-        pkg-config \
-        git && \
+    ca-certificates \
+    curl \
+    gnupg \
+    lsb-release \
+    bash \
+    gfortran \
+    libopenblas-dev \
+    liblapack-dev \
+    build-essential \
+    pkg-config \
+    git && \
     mkdir -p /etc/apt/keyrings && \
     curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg && \
     echo \
-      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian \
-      $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null && \
+    "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian \
+    $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
-        docker-ce-cli \
-        docker-buildx-plugin && \
+    docker-ce-cli \
+    docker-buildx-plugin && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Poetry
@@ -62,7 +62,8 @@ WORKDIR /app
 COPY . .
 
 # Install poetry dependencies
-RUN poetry install --no-root
+RUN poetry lock && \
+    poetry install --no-root
 
 # Make the scripts executable
 RUN chmod +x ./build-and-publish/go && \
