@@ -1,46 +1,15 @@
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
-from dataclasses import dataclass
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 
 from fastapi import HTTPException
 from pydantic import BaseModel
-from qdrant_client import QdrantClient
 from qdrant_client.http import models as rest
-from langchain_community.embeddings import SentenceTransformerEmbeddings
 
-from mcp.server.fastmcp import FastMCP, Context
-from mcp.server.session import ServerSession
+from mcp.server.fastmcp import FastMCP
 
 from .state import app_state
 
-@dataclass
-class AppContext:
-    """Application context with typed dependencies for MCP server."""
-    qdrant_client: QdrantClient
-    embeddings_model: SentenceTransformerEmbeddings
-    collection_name: str
-    data_types_and_classes: Dict[str, Any]
-
-@asynccontextmanager
-async def mcp_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
-    """Manage application lifecycle with type-safe context for MCP server."""
-    try:
-        yield AppContext(
-            qdrant_client=app_state["qdrant_client"],
-            embeddings_model=app_state["embedding_model"],
-            collection_name=app_state["collection_name"],
-            data_types_and_classes=app_state["data_types_and_classes"]
-        )
-    finally:
-        # No cleanup needed here, as the main app's lifespan manager handles it.
-        pass
-
-# Initialize FastMCP server with lifespan
-mcp_server = FastMCP(
-    "Roblox Engine API Docs MCP Server",
-    lifespan=mcp_lifespan
-)
+# Initialize FastMCP server
+mcp_server = FastMCP("Roblox Engine API Docs MCP Server")
 
 # Define Pydantic models for tool inputs/outputs if they are not already defined elsewhere
 # These models will be automatically converted to JSON schemas by FastMCP
@@ -124,6 +93,18 @@ async def roblox_engine_api_docs(
     except Exception as e:
         print(f"Error during query: {e}")
         raise HTTPException(status_code=500, detail=f"An internal error occurred: {e}")
+
+
+@mcp_server.get("/health")
+async def health_check():
+    """Health check endpoint."""
+    return {"status": "ok"}
+
+
+@mcp_server.get("/openapi.json")
+async def get_openapi_schema():
+    """Return the OpenAPI schema."""
+    return mcp_server.openapi()
 
 @mcp_server.resource("resource://roblox/engine-reference/datatypes-and-classes")
 async def get_roblox_data_types_and_classes() -> DataTypesAndClassesResponse:
