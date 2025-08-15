@@ -150,6 +150,7 @@ docker buildx build \
     -t "$DOCKERHUB_USERNAME/roblox-engine-api-docs-mcp-server:latest" \
     -t "$DOCKERHUB_USERNAME/roblox-engine-api-docs-mcp-server:$VERSION" \
     --pull \
+    --file src/mcp_server/Dockerfile \
     --push .
 
 echo "--- Docker image published successfully! ---"

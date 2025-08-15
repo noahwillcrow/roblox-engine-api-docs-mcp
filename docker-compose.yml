@@ -2,7 +2,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: src/mcp_server/Dockerfile
       target: final
     working_dir: /app
     ports:
@@ -21,7 +21,7 @@ services:
   ingestion:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: src/ingestion/Dockerfile
       target: ingester
     working_dir: /app
     volumes:

@@ -26,7 +26,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y build-essential git && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-COPY pyproject.toml ./
+COPY ../../pyproject.toml ./
 RUN poetry install --no-root && \
     rm -rf /root/.cache/pypoetry
 
@@ -36,7 +36,7 @@ FROM builder as ingester
 
 WORKDIR /app
 
-COPY ./src /app/src
+COPY . /app/src/ingestion
 
 # Set the data path for the Qdrant database
 ENV QDRANT_DATA_PATH="/app/qdrant_data"

@@ -4,7 +4,7 @@ FROM python:3.11-slim as base
 
 ENV PYTHONUNBUFFERED=1 \
     POETRY_NO_INTERACTION=1 \
-    POETRY_VIRTUALENVS_CREATE=true \
+    POETry_VIRTUALENVS_CREATE=true \
     POETRY_VIRTUALENVS_IN_PROJECT=true \
     POETRY_HOME="/opt/poetry" \
     PATH="/opt/poetry/bin:$PATH" \
@@ -26,7 +26,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y build-essential git && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-COPY pyproject.toml poetry.lock ./
+COPY ../../pyproject.toml ../../poetry.lock ./
 RUN poetry install --no-root && \
     rm -rf /root/.cache/pypoetry
 
@@ -45,10 +45,10 @@ COPY --from=builder /app/poetry.lock ./
 COPY --from=builder /app/pyproject.toml ./
 
 # Copy the API application code and ingestion data
-COPY ./src/mcp_server ./src/mcp_server
+COPY . .
 
 # Copy the populated Qdrant database from the local build context
-COPY ./qdrant_data /app/qdrant_data
+COPY ../../qdrant_data /app/qdrant_data
 
 # Set environment variables for the runtime
 ENV QDRANT_DATA_PATH="/app/qdrant_data" \

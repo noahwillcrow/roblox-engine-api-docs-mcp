@@ -39,7 +39,7 @@ fi
 
 # Run the ingestion script
 echo "--- Running local ingestion script ---"
-if ! poetry run python3 -m src.ingestion.main; then
+if ! poetry run python -m ingestion.main; then
     error_exit "Failed to run ingestion script."
 fi
 
