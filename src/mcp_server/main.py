@@ -75,7 +75,7 @@ class DataTypesAndClassesResponse(BaseModel):
     classes: List[str]
 
 @mcp.resource("resource://query/{text}")
-async def roblox_engine_api_docs(
+def roblox_engine_api_docs(
     text: str,
 ) -> QueryResponse:
     """
@@ -139,20 +139,8 @@ async def roblox_engine_api_docs(
         print(f"Error during query: {e}")
         raise HTTPException(status_code=500, detail=f"An internal error occurred: {e}")
 
-
-@mcp.custom_route("/health", methods=["GET"])
-async def health_check():
-    """Health check endpoint."""
-    return {"status": "ok"}
-
-
-@mcp.custom_route("/openapi.json", methods=["GET"])
-async def get_openapi_schema():
-    """Return the OpenAPI schema."""
-    return mcp.openapi()
-
 @mcp.resource("resource://datatypes-and-classes")
-async def get_roblox_data_types_and_classes() -> DataTypesAndClassesResponse:
+def get_roblox_data_types_and_classes() -> DataTypesAndClassesResponse:
     """
     Provides a list of all available Roblox API data types and class names. Use this to understand the full scope of Roblox API objects before formulating specific queries or if the user asks for a list of available types/classes.
     """
