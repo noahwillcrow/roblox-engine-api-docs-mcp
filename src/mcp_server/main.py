@@ -127,7 +127,7 @@ def roblox_engine_api_docs(
             QueryResult(
                 score=result.score,
                 payload=QueryResultPayload(
-                    page_content=result.payload.get("page_content"),
+                    page_content=result.payload.get("page_content", ""),
                     metadata=result.payload.get("metadata")
                 ),
             )
