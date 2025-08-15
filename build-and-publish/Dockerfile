@@ -62,8 +62,7 @@ WORKDIR /app
 COPY . .
 
 # Install poetry dependencies
-RUN poetry lock && \
-    poetry install --no-root
+RUN poetry install --no-root
 
 # Make the scripts executable
 RUN chmod +x ./build-and-publish/go && \

@@ -27,8 +27,7 @@ RUN apt-get update && apt-get install -y build-essential git && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 COPY ../../pyproject.toml ../../poetry.lock ./
-RUN poetry lock && \
-    poetry install --no-root && \
+RUN poetry install --no-root && \
     rm -rf /root/.cache/pypoetry
 
 # --- Stage 3: Final ---
