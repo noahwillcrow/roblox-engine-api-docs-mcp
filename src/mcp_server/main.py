@@ -1,13 +1,20 @@
+# This file is the entry point for the uvicorn server.
+# It imports the mcp_server instance from the mcp_server module
+# and assigns it to a variable named "app", which uvicorn expects.
+
 import os
 import json
 from pathlib import Path
-from fastapi import FastAPI
 from contextlib import asynccontextmanager
+from typing import Dict, Any, List
+
+from fastapi import HTTPException
+from pydantic import BaseModel
 from qdrant_client import QdrantClient
+from qdrant_client.http import models as rest
 from langchain_community.embeddings import SentenceTransformerEmbeddings
 
-from .mcp_server import mcp_server
-from .state import app_state
+from mcp.server.fastmcp import FastMCP
 
 # --- Constants ---
 QDRANT_DATA_PATH = os.getenv("QDRANT_DATA_PATH", "./qdrant_data")
@@ -16,12 +23,12 @@ COLLECTION_NAME = os.getenv("COLLECTION_NAME", "roblox_api")
 DATA_TYPES_CLASSES_FILE = Path(QDRANT_DATA_PATH) / "data_types_and_classes.json"
 
 # --- Application State Management ---
-# Use a dictionary to hold the application's state, including our expensive resources.
+app_state = {}
+
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastMCP):
     """
-    Manages the application's lifespan. This is the recommended way to handle
-    startup and shutdown events in modern FastAPI.
+    Manages the application's lifespan, loading and cleaning up resources.
     """
     print("--- Application Startup ---")
     # Load expensive resources on startup
@@ -52,21 +59,126 @@ async def lifespan(app: FastAPI):
     app_state.clear()
     print("Shutdown complete.")
 
-# --- FastAPI App Initialization ---
-app = FastAPI(
-    title="Roblox Engine API Docs MCP Server",
-    description="A RAG API for the Roblox engine, pre-loaded with API and documentation.",
-    version="1.0.0",
+# Initialize FastMCP server
+app = FastMCP(
+    name="RobloxEngineApiReference",
     lifespan=lifespan
 )
 
+# Define Pydantic models for tool inputs/outputs if they are not already defined elsewhere
+# These models will be automatically converted to JSON schemas by FastMCP
 
-# --- Mount MCP Server ---
-# Mount the FastMCP server at the /mcp path.
-# This makes the MCP interface available at http://localhost:8000/mcp
-app.mount("/mcp", mcp_server)
+class QueryResultPayload(BaseModel):
+    page_content: str
+    metadata: Dict[str, Any]
 
-# --- Root Endpoint ---
-@app.get("/", include_in_schema=False)
-def read_root():
-    return {"message": "Welcome to the Roblox Engine API Docs MCP Server. See /docs for API documentation or /mcp for the MCP interface."}
+class QueryResult(BaseModel):
+    score: float
+    payload: QueryResultPayload
+
+class QueryResponse(BaseModel):
+    results: List[QueryResult]
+
+class DataTypesAndClassesResponse(BaseModel):
+    data_types: List[str]
+    classes: List[str]
+
+@app.resource("resource://query/{text}")
+async def roblox_engine_api_docs(
+    text: str,
+) -> QueryResponse:
+    """
+    Search the Roblox API documentation and API dump for information. Use this for general questions about Roblox API, classes, properties, functions, events, or code examples.
+    """
+    # Set default values for parameters not in the URI
+    top_k = 5
+    filters = None
+
+    print(f"Received query for: '{text}' with top_k={top_k}")
+
+    qdrant_client = app_state["qdrant_client"]
+    embeddings_model = app_state["embedding_model"]
+    collection_name = app_state["collection_name"]
+
+    try:
+        # Generate embedding for the query text
+        query_embedding = embeddings_model.embed_query(text)
+
+        # Build the filter conditions for Qdrant
+        filter_conditions = []
+        if filters:
+            if filters.source:
+                filter_conditions.append(
+                    rest.FieldCondition(key="metadata.source", match=rest.MatchValue(value=filters.source))
+                )
+            if filters.class_name:
+                filter_conditions.append(
+                    rest.FieldCondition(key="metadata.class_name", match=rest.MatchValue(value=filters.class_name))
+                )
+            if filters.member_type:
+                filter_conditions.append(
+                    rest.FieldCondition(key="metadata.member_type", match=rest.MatchValue(value=filters.member_type))
+                )
+        
+        query_filter = rest.Filter(must=filter_conditions) if filter_conditions else None
+
+        # Perform the search in Qdrant
+        search_results = qdrant_client.search(
+            collection_name=collection_name,
+            query_vector=query_embedding,
+            query_filter=query_filter,
+            limit=top_k,
+            with_payload=True,
+        )
+
+        # Format the results for the response
+        formatted_results = [
+            QueryResult(
+                score=result.score,
+                payload=QueryResultPayload(
+                    page_content=result.payload.get("page_content"),
+                    metadata=result.payload.get("metadata")
+                ),
+            )
+            for result in search_results
+        ]
+
+        return QueryResponse(results=formatted_results)
+    except Exception as e:
+        print(f"Error during query: {e}")
+        raise HTTPException(status_code=500, detail=f"An internal error occurred: {e}")
+
+
+@app.custom_route("/health", methods=["GET"])
+async def health_check():
+    """Health check endpoint."""
+    return {"status": "ok"}
+
+
+@app.custom_route("/openapi.json", methods=["GET"])
+async def get_openapi_schema():
+    """Return the OpenAPI schema."""
+    return app.openapi()
+
+@app.resource("resource://datatypes-and-classes")
+async def get_roblox_data_types_and_classes() -> DataTypesAndClassesResponse:
+    """
+    Provides a list of all available Roblox API data types and class names. Use this to understand the full scope of Roblox API objects before formulating specific queries or if the user asks for a list of available types/classes.
+    """
+    print("Received request for Roblox data types and classes resource.")
+
+    data_types_and_classes = app_state.get("data_types_and_classes")
+
+    if not data_types_and_classes:
+        print("Error: Data types and classes not loaded in app_state.")
+        raise HTTPException(status_code=500, detail="Data types and classes not loaded.")
+
+    return DataTypesAndClassesResponse(
+        data_types=data_types_and_classes.get("data_types", []),
+        classes=data_types_and_classes.get("classes", [])
+    )
+
+# The mcp_router is no longer needed as FastMCP handles routing internally.
+
+if __name__ == "__main__":
+    app.run(transport="http")
