@@ -36,6 +36,13 @@ async def lifespan(_app): # The lifespan is passed the FastAPI app, not the MCP 
     
     app_state["collection_name"] = COLLECTION_NAME
 
+    # Diagnostic: Check Qdrant collection status
+    try:
+        collection_info = app_state["qdrant_client"].get_collection(collection_name=COLLECTION_NAME)
+        print(f"Qdrant collection '{COLLECTION_NAME}' found. Status: {collection_info.status}, Points count: {collection_info.points_count}")
+    except Exception as e:
+        print(f"Error checking Qdrant collection '{COLLECTION_NAME}': {e}")
+
     # Load data types and classes
     print(f"Loading data types and classes from {DATA_TYPES_CLASSES_FILE}")
     if DATA_TYPES_CLASSES_FILE.exists():
