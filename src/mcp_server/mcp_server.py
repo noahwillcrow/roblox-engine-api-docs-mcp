@@ -95,16 +95,16 @@ async def roblox_engine_api_docs(
         raise HTTPException(status_code=500, detail=f"An internal error occurred: {e}")
 
 
-@mcp_server.get("/health")
-async def health_check():
-    """Health check endpoint."""
-    return {"status": "ok"}
+# @mcp_server.get("/health")
+# async def health_check():
+#     """Health check endpoint."""
+#     return {"status": "ok"}
 
 
-@mcp_server.get("/openapi.json")
-async def get_openapi_schema():
-    """Return the OpenAPI schema."""
-    return mcp_server.openapi()
+# @mcp_server.get("/openapi.json")
+# async def get_openapi_schema():
+#     """Return the OpenAPI schema."""
+#     return mcp_server.openapi()
 
 @mcp_server.resource("resource://roblox/engine-reference/datatypes-and-classes")
 async def get_roblox_data_types_and_classes() -> DataTypesAndClassesResponse:
