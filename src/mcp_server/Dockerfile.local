@@ -1,0 +1,43 @@
+# A simplified, single-stage Dockerfile for rapid local development.
+FROM python:3.11-slim
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    POETRY_NO_INTERACTION=1 \
+    POETRY_VIRTUALENVS_CREATE=true \
+    POETRY_VIRTUALENVS_IN_PROJECT=true \
+    POETRY_HOME="/opt/poetry" \
+    POETRY_CACHE_DIR="/opt/poetry_cache" \
+    PATH="/opt/poetry/bin:/app/.venv/bin:$PATH" \
+    PYTHONPATH="/app/src:$PYTHONPATH" \
+    NLTK_DATA="/usr/local/nltk_data" \
+    QDRANT_DATA_PATH="/app/qdrant_data" \
+    COLLECTION_NAME="roblox_api"
+
+# Install system dependencies and Poetry
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    curl \
+    build-essential \
+    git && \
+    curl -sSL https://install.python-poetry.org | python - && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Set the working directory
+WORKDIR /app
+
+# Copy dependency definition files
+COPY ../../pyproject.toml ../../poetry.lock ./
+
+# Explicitly tell Poetry which python to use and install dependencies.
+# The cache is mounted via docker-compose for persistence.
+RUN --mount=type=cache,target=/opt/poetry_cache,sharing=locked \
+    poetry env use python3 && \
+    poetry install --no-root
+
+# Expose the port the app runs on
+EXPOSE 8000
+
+# The command to run the application with live reloading.
+CMD ["poetry", "run", "uvicorn", "mcp_server.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

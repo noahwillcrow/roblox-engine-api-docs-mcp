@@ -1,36 +1,16 @@
 services:
-  api:
+  mcp-server-local:
     build:
       context: .
-      dockerfile: src/mcp_server/Dockerfile
-      target: final
-    working_dir: /app
+      dockerfile: src/mcp_server/Dockerfile.local
     ports:
-      - "${ROBLOX_API_MCP_HOST_PORT:-8000}:8000" # Host port can be configured via ROBLOX_API_MCP_HOST_PORT environment variable, defaults to 8000
+      - "8000:8000"
     volumes:
-      # Mount the source code for hot-reloading
+      # Mount the qdrant_data and src directories, preserving the .venv from the build.
+      - ./qdrant_data:/app/qdrant_data
       - ./src:/app/src
-      # Persist the Qdrant database on the host machine
-      - qdrant_data:/app/qdrant_data
+      # Use named volumes for caches to persist them on the host
+      - ./local-build-caches/poetry_cache:/opt/poetry_cache
+      - ./local-build-caches/apt_cache:/var/cache/apt
     environment:
-      - QDRANT_DATA_PATH=/app/qdrant_data
-      - COLLECTION_NAME=roblox_api
-      - ROBLOX_API_MCP_HOST_PORT=${ROBLOX_API_MCP_HOST_PORT:-8000} # Pass ROBLOX_API_MCP_HOST_PORT to the container for reference if needed
-    command: poetry run uvicorn mcp_server.main:app --host 0.0.0.0 --port 8000 --reload --app-dir src
-
-  ingestion:
-    build:
-      context: .
-      dockerfile: src/ingestion/Dockerfile
-      target: ingester
-    working_dir: /app
-    volumes:
-      - ./src:/app/src
-      - qdrant_data:/app/qdrant_data
-    environment:
-      - QDRANT_DATA_PATH=/app/qdrant_data
-      - COLLECTION_NAME=roblox_api
-    command: poetry run python -m ingestion.main
-
-volumes:
-  qdrant_data:
+      - POETRY_CACHE_DIR=/opt/poetry_cache

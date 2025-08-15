@@ -108,5 +108,5 @@ poetry.lock
 .vscode/
 # Qdrant data
 qdrant_data/
-# Qdrant data
-qdrant_data/
+# Local build caches
+local-build-caches
