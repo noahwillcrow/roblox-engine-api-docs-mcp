@@ -5,3 +5,6 @@ This project provides a Retrieval-Augmented Generation (RAG) API for the Roblox 
 For a detailed overview of the project's architecture and components, see [PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md).
 For a quick guide on using the pre-built Docker container, refer to [QUICKSTART.md](QUICKSTART.md).
 
+## Published Images
+
+Published, pre-built images can be found at https://hub.docker.com/r/noahwillcrowdocker/roblox-engine-api-docs-mcp-server.
