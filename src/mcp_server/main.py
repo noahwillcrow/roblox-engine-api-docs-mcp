@@ -26,7 +26,7 @@ DATA_TYPES_CLASSES_FILE = Path(QDRANT_DATA_PATH) / "data_types_and_classes.json"
 app_state = {}
 
 @asynccontextmanager
-async def lifespan(app: FastMCP):
+async def lifespan(app): # The lifespan is passed the FastAPI app, not the MCP wrapper
     """
     Manages the application's lifespan, loading and cleaning up resources.
     """
@@ -60,7 +60,7 @@ async def lifespan(app: FastMCP):
     print("Shutdown complete.")
 
 # Initialize FastMCP server
-app = FastMCP(
+mcp = FastMCP(
     name="RobloxEngineApiReference",
     lifespan=lifespan
 )
@@ -83,7 +83,7 @@ class DataTypesAndClassesResponse(BaseModel):
     data_types: List[str]
     classes: List[str]
 
-@app.resource("resource://query/{text}")
+@mcp.resource("resource://query/{text}")
 async def roblox_engine_api_docs(
     text: str,
 ) -> QueryResponse:
@@ -149,18 +149,18 @@ async def roblox_engine_api_docs(
         raise HTTPException(status_code=500, detail=f"An internal error occurred: {e}")
 
 
-@app.custom_route("/health", methods=["GET"])
+@mcp.custom_route("/health", methods=["GET"])
 async def health_check():
     """Health check endpoint."""
     return {"status": "ok"}
 
 
-@app.custom_route("/openapi.json", methods=["GET"])
+@mcp.custom_route("/openapi.json", methods=["GET"])
 async def get_openapi_schema():
     """Return the OpenAPI schema."""
-    return app.openapi()
+    return mcp.openapi()
 
-@app.resource("resource://datatypes-and-classes")
+@mcp.resource("resource://datatypes-and-classes")
 async def get_roblox_data_types_and_classes() -> DataTypesAndClassesResponse:
     """
     Provides a list of all available Roblox API data types and class names. Use this to understand the full scope of Roblox API objects before formulating specific queries or if the user asks for a list of available types/classes.
@@ -180,5 +180,10 @@ async def get_roblox_data_types_and_classes() -> DataTypesAndClassesResponse:
 
 # The mcp_router is no longer needed as FastMCP handles routing internally.
 
+# The `mcp` object is the server builder.
+# The actual ASGI application is at `mcp.app`.
+app = mcp.app
+
 if __name__ == "__main__":
-    app.run(transport="http")
+    # The builder has a `run` method for local development.
+    mcp.run(transport="http")
