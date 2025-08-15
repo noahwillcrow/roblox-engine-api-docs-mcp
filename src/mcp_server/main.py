@@ -1,7 +1,3 @@
-# This file is the entry point for the uvicorn server.
-# It imports the mcp_server instance from the mcp_server module
-# and assigns it to a variable named "app", which uvicorn expects.
-
 import os
 import json
 from pathlib import Path
@@ -26,7 +22,7 @@ DATA_TYPES_CLASSES_FILE = Path(QDRANT_DATA_PATH) / "data_types_and_classes.json"
 app_state = {}
 
 @asynccontextmanager
-def init(): # The lifespan is passed the FastAPI app, not the MCP wrapper
+async def lifespan(_app): # The lifespan is passed the FastAPI app, not the MCP wrapper
     """
     Manages the application's lifespan, loading and cleaning up resources.
     """
@@ -49,12 +45,15 @@ def init(): # The lifespan is passed the FastAPI app, not the MCP wrapper
     else:
         print(f"Warning: {DATA_TYPES_CLASSES_FILE} not found. Data types and classes endpoint will return empty data.")
         app_state["data_types_and_classes"] = {"data_types": [], "classes": []}
-    
+
     print("Startup complete.")
+    yield
+    print("--- Application Shutdown ---")
 
 # Initialize FastMCP server
 mcp = FastMCP(
-    name="RobloxEngineApiReference"
+    name="RobloxEngineApiReference",
+    lifespan=lifespan
 )
 
 # Define Pydantic models for tool inputs/outputs if they are not already defined elsewhere
@@ -170,10 +169,4 @@ async def get_roblox_data_types_and_classes() -> DataTypesAndClassesResponse:
         classes=data_types_and_classes.get("classes", [])
     )
 
-# The mcp_router is no longer needed as FastMCP handles routing internally.
-
-if __name__ == "__main__":
-    # The builder has a `run` method for local development.
-    init()
-    mcp.run()
-    print("mcp running")
+app = mcp
