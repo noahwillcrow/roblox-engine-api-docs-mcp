@@ -169,4 +169,4 @@ async def get_roblox_data_types_and_classes() -> DataTypesAndClassesResponse:
         classes=data_types_and_classes.get("classes", [])
     )
 
-app = mcp
+app = mcp.streamable_http_app
