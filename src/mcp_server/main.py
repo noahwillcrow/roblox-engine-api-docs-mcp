@@ -26,7 +26,7 @@ DATA_TYPES_CLASSES_FILE = Path(QDRANT_DATA_PATH) / "data_types_and_classes.json"
 app_state = {}
 
 @asynccontextmanager
-async def lifespan(app): # The lifespan is passed the FastAPI app, not the MCP wrapper
+def init(): # The lifespan is passed the FastAPI app, not the MCP wrapper
     """
     Manages the application's lifespan, loading and cleaning up resources.
     """
@@ -51,18 +51,10 @@ async def lifespan(app): # The lifespan is passed the FastAPI app, not the MCP w
         app_state["data_types_and_classes"] = {"data_types": [], "classes": []}
     
     print("Startup complete.")
-    
-    yield
-    
-    # Clean up resources on shutdown
-    print("--- Application Shutdown ---")
-    app_state.clear()
-    print("Shutdown complete.")
 
 # Initialize FastMCP server
 mcp = FastMCP(
-    name="RobloxEngineApiReference",
-    lifespan=lifespan
+    name="RobloxEngineApiReference"
 )
 
 # Define Pydantic models for tool inputs/outputs if they are not already defined elsewhere
@@ -180,10 +172,8 @@ async def get_roblox_data_types_and_classes() -> DataTypesAndClassesResponse:
 
 # The mcp_router is no longer needed as FastMCP handles routing internally.
 
-# The `mcp` object is the server builder.
-# The actual ASGI application is at `mcp.app`.
-app = mcp.app
-
 if __name__ == "__main__":
     # The builder has a `run` method for local development.
-    mcp.run(transport="http")
+    init()
+    mcp.run()
+    print("mcp running")
