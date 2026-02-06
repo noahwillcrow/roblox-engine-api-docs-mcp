@@ -18,7 +18,7 @@ ENV PATH="/root/.local/bin:${PATH}"
 WORKDIR /app
 
 # Copy project files
-COPY pyproject.toml poetry.lock ./
+COPY pyproject.toml ./
 COPY src/ ./src/
 COPY build-and-publish/ ./build-and-publish/
 
