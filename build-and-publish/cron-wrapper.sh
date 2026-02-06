@@ -46,7 +46,8 @@ echo "Starting automated build at $(date)" | tee "$LOG_FILE"
 echo "Project directory: $PROJECT_DIR" | tee -a "$LOG_FILE"
 
 # Run the build and publish script
-if "$(dirname "$0")/go" "$DOCKERHUB_USERNAME" "$DOCKERHUB_PAT" >> "$LOG_FILE" 2>&1; then
+GO_SCRIPT="$PROJECT_DIR/build-and-publish/go"
+if "$GO_SCRIPT" "$DOCKERHUB_USERNAME" "$DOCKERHUB_PAT" >> "$LOG_FILE" 2>&1; then
     echo "Build completed successfully at $(date)" | tee -a "$LOG_FILE"
 else
     echo "Build failed at $(date)" | tee -a "$LOG_FILE"
