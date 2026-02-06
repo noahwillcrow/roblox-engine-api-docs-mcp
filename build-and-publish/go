@@ -126,11 +126,11 @@ if [ -z "$DOCKERHUB_USERNAME" ]; then
     error_exit "Docker Hub username is required. Usage: ./build-and-publish/go DOCKERHUB_USERNAME [DOCKERHUB_PASSWORD_OR_PAT] [--force-ingestion]"
 fi
 
-# Log in to Docker Hub
+# Log in to Docker Hub (if password provided, otherwise assume already logged in)
 if [ -n "$DOCKERHUB_PASSWORD_OR_PAT" ]; then
     echo "$DOCKERHUB_PASSWORD_OR_PAT" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
 else
-    docker login --username "$DOCKERHUB_USERNAME"
+    echo "--- No password provided, assuming already logged into Docker Hub ---"
 fi
 
 # Get the Roblox API Version

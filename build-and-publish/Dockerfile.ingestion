@@ -1,0 +1,34 @@
+# Dockerfile for running the ingestion and build process
+# This container has all dependencies needed to build and publish the MCP server image
+
+FROM python:3.11-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    docker.io \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Poetry
+RUN curl -sSL https://install.python-poetry.org | python3 -
+ENV PATH="/root/.local/bin:${PATH}"
+
+# Set working directory
+WORKDIR /app
+
+# Copy project files
+COPY pyproject.toml poetry.lock ./
+COPY src/ ./src/
+COPY build-and-publish/ ./build-and-publish/
+
+# Install dependencies
+RUN poetry install --no-interaction --no-ansi
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV OMP_NUM_THREADS=1
+ENV DOCKER_API_VERSION=1.41
+
+# Default command
+CMD ["./build-and-publish/go"]
