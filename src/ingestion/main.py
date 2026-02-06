@@ -1,4 +1,10 @@
 import os
+
+# Set OMP_NUM_THREADS to avoid PyTorch OpenMP memory allocation issues
+# This MUST be set before importing any PyTorch-dependent libraries
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
 import uuid
 import shutil
 import json

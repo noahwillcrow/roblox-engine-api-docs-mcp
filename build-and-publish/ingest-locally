@@ -5,6 +5,15 @@
 
 set -eo pipefail
 
+# Set OMP_NUM_THREADS to avoid PyTorch OpenMP memory allocation issues
+# These must be set before Python starts to prevent libgomp TLS allocation errors
+export OMP_NUM_THREADS=1
+export KMP_DUPLICATE_LIB_OK=TRUE
+export OPENBLAS_NUM_THREADS=1
+export MKL_NUM_THREADS=1
+export VECLIB_MAXIMUM_THREADS=1
+export NUMEXPR_NUM_THREADS=1
+
 # --- Functions ---
 
 # Function to print error messages and exit
@@ -25,21 +34,37 @@ function command_check() {
 # Check for required commands
 command_check "poetry"
 
-# Install dependencies
-echo "--- Installing ingestion dependencies via Poetry ---"
-if ! poetry install; then
-    error_exit "Failed to install dependencies with poetry."
+# Set up virtualenv
+VENV_PATH=".venv"
+PYTHON_CMD="$VENV_PATH/bin/python"
+
+# Fix for PyTorch libgomp TLS allocation error
+# Preload the bundled libgomp to avoid conflicts with system version
+TORCH_LIBGOMP="$VENV_PATH/lib/python3.11/site-packages/torch.libs/libgomp-947d5fa1.so.1.0.0"
+if [ -f "$TORCH_LIBGOMP" ]; then
+    export LD_PRELOAD="$TORCH_LIBGOMP${LD_PRELOAD:+:$LD_PRELOAD}"
+    echo "--- Using bundled libgomp to avoid TLS allocation issues ---"
+fi
+
+# Create virtualenv if it doesn't exist
+if [ ! -d "$VENV_PATH" ]; then
+    echo "--- Creating virtualenv ---"
+    poetry install || error_exit "Failed to create virtualenv with poetry."
+else
+    # Ensure dependencies are installed
+    echo "--- Ensuring dependencies are installed ---"
+    poetry install || error_exit "Failed to install dependencies with poetry."
 fi
 
 # Download NLTK data
 echo "--- Downloading NLTK data ---"
-if ! poetry run python3 -c "import nltk; nltk.download('punkt'); nltk.download('punkt_tab'); nltk.download('averaged_perceptron_tagger'); nltk.download('averaged_perceptron_tagger_eng'); nltk.download('stopwords'); nltk.download('wordnet'); nltk.download('omw-1.4'); nltk.download('maxent_ne_chunker'); nltk.download('words')"; then
+if ! "$PYTHON_CMD" -c "import nltk; nltk.download('punkt'); nltk.download('punkt_tab'); nltk.download('averaged_perceptron_tagger'); nltk.download('averaged_perceptron_tagger_eng'); nltk.download('stopwords'); nltk.download('wordnet'); nltk.download('omw-1.4'); nltk.download('maxent_ne_chunker'); nltk.download('words')"; then
     error_exit "Failed to download NLTK data."
 fi
 
 # Run the ingestion script
 echo "--- Running local ingestion script ---"
-if ! poetry run python -m src.ingestion.main; then
+if ! env LD_PRELOAD="$LD_PRELOAD" OMP_NUM_THREADS=1 KMP_DUPLICATE_LIB_OK=TRUE OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 NUMEXPR_NUM_THREADS=1 "$PYTHON_CMD" -m src.ingestion.main; then
     error_exit "Failed to run ingestion script."
 fi
 

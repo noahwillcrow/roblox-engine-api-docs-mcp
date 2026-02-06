@@ -17,6 +17,13 @@
 
 set -eo pipefail
 
+# Set OMP_NUM_THREADS to avoid PyTorch OpenMP memory allocation issues
+export OMP_NUM_THREADS=1
+
+# Fix Docker API version mismatch between client and daemon
+# This can happen when the Docker client is newer than the Docker daemon
+export DOCKER_API_VERSION=1.41
+
 # --- Functions ---
 
 # Function to print error messages and exit
@@ -53,16 +60,16 @@ command_check "docker"
 
 # Ensure a buildx builder is active
 echo "--- Ensuring Docker Buildx builder is correctly configured ---"
-# Create a new builder with a unique name and the docker-container driver
-BUILDER_NAME="mcp-builder"
+# Use the default builder to avoid API version compatibility issues
+# with older Docker daemons
+BUILDER_NAME="default"
 if ! docker buildx inspect "$BUILDER_NAME" > /dev/null 2>&1; then
-    echo "--- Creating a new Docker Buildx builder: $BUILDER_NAME ---"
-    docker buildx create --name "$BUILDER_NAME" --driver docker-container || error_exit "Failed to create Docker Buildx builder."
+    echo "--- Using default Docker Buildx builder ---"
+    docker buildx use default || error_exit "Failed to use default Docker Buildx builder."
+else
+    echo "--- Using Docker Buildx builder: $BUILDER_NAME ---"
+    docker buildx use "$BUILDER_NAME" || error_exit "Failed to use Docker Buildx builder."
 fi
-
-# Use the custom builder
-echo "--- Using Docker Buildx builder: $BUILDER_NAME ---"
-docker buildx use "$BUILDER_NAME" || error_exit "Failed to use Docker Buildx builder."
 
 # Set poetry command path
 POETRY_CMD="poetry"
@@ -76,10 +83,18 @@ if ! command -v "poetry" > /dev/null 2>&1; then
     POETRY_CMD="poetry" # It should now be in the path
 fi
 
-# Install dependencies for version script
-echo "--- Installing script dependencies via Poetry ---"
-if ! "$POETRY_CMD" install --only versioning; then
-    error_exit "Failed to install dependencies with poetry."
+# Set up virtualenv
+VENV_PATH=".venv"
+PYTHON_CMD="$VENV_PATH/bin/python"
+
+# Create virtualenv if it doesn't exist
+if [ ! -d "$VENV_PATH" ]; then
+    echo "--- Creating virtualenv ---"
+    "$POETRY_CMD" install --only versioning || error_exit "Failed to create virtualenv with poetry."
+else
+    # Ensure dependencies are installed
+    echo "--- Ensuring dependencies are installed ---"
+    "$POETRY_CMD" install --only versioning || error_exit "Failed to install dependencies with poetry."
 fi
 
 # --- Argument Parsing ---
@@ -120,7 +135,7 @@ fi
 
 # Get the Roblox API Version
 echo "--- Getting Roblox API Version ---"
-VERSION=$("$POETRY_CMD" run python3 src/scripts/get_roblox_version.py)
+VERSION=$("$PYTHON_CMD" src/scripts/get_roblox_version.py)
 if [ -z "$VERSION" ]; then
     error_exit "Failed to get Roblox API Version."
 fi
@@ -132,7 +147,7 @@ if [ "$FORCE_INGESTION" = true ]; then
         echo "--- Removing existing qdrant_data directory ---"
         rm -rf "qdrant_data"
     fi
-    ./build-and-publish/ingest-locally || error_exit "Local ingestion failed."
+    env OMP_NUM_THREADS=1 ./build-and-publish/ingest-locally || error_exit "Local ingestion failed."
 fi
 
 # Check for the qdrant_data directory
@@ -141,12 +156,12 @@ if [ ! -d "qdrant_data" ]; then
 fi
 
 
-# Build the MCP Server Docker Image for multiple platforms
-echo "--- Building MCP Server Docker Image for multiple platforms ---"
-# Build and push the Docker image for multiple platforms using buildx
-# The --push flag automatically pushes the image to Docker Hub after building
+# Build the MCP Server Docker Image
+# Note: Using single-platform (linux/amd64) build for compatibility with most Docker setups
+# Multi-platform builds require a buildx builder with the 'docker-container' driver
+echo "--- Building MCP Server Docker Image for linux/amd64 ---"
 docker buildx build \
-    --platform linux/amd64,linux/arm64 \
+    --platform linux/amd64 \
     -t "$DOCKERHUB_USERNAME/roblox-engine-api-docs-mcp-server:latest" \
     -t "$DOCKERHUB_USERNAME/roblox-engine-api-docs-mcp-server:$VERSION" \
     --pull \
