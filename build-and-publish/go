@@ -163,7 +163,7 @@ echo "--- Building MCP Server Docker Image for linux/amd64 ---"
 docker buildx build \
     --platform linux/amd64 \
     -t "$DOCKERHUB_USERNAME/roblox-engine-api-docs-mcp-server:latest" \
-    -t "$DOCKERHUB_USERNAME/roblox-engine-api-docs-mcp-server:$VERSION" \
+    -t "$DOCKERHUB_USERNAME/roblox-engine-api-docs-mcp-server:v2_roblox-$VERSION" \
     --pull \
     --file src/mcp_server/Dockerfile \
     --push .
