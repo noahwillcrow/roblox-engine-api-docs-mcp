@@ -16,10 +16,10 @@ The server uses a lifespan manager to share resources with the main FastAPI appl
 
 The following tools are exposed by the MCP server:
 
-*   **`query_roblox_api_rag`**: This tool allows you to perform a semantic search over the Roblox API and Creator Documentation. It accepts a natural language query, a `top_k` parameter to limit the number of results, and a set of filters to narrow down the search.
+*   **`roblox_engine_api_docs`**: This tool allows you to perform a semantic search over the Roblox API and Creator Documentation. It accepts a natural language query (`text`) and an optional `top_k` parameter (default: 5) to limit the number of results.
 
 ### Resources
 
 The following resources are exposed by the MCP server:
 
-*   **`/roblox/types-and-classes`**: This resource provides a list of all available Roblox API data types and class names. This is useful for understanding the scope of the API and for formulating more specific queries.
+*   **`resource://datatypes-and-classes`**: This resource provides a list of all available Roblox API data types and class names. This is useful for understanding the scope of the API and for formulating more specific queries.
