@@ -81,17 +81,14 @@ class DataTypesAndClassesResponse(BaseModel):
     data_types: List[str]
     classes: List[str]
 
-@mcp.resource("resource://query/{text}")
+@mcp.tool()
 def roblox_engine_api_docs(
     text: str,
+    top_k: int = 5,
 ) -> QueryResponse:
     """
     Search the Roblox API documentation and API dump for information. Use this for general questions about Roblox API, classes, properties, functions, events, or code examples.
     """
-    # Set default values for parameters not in the URI
-    top_k = 5
-    filters = None
-
     print(f"Received query for: '{text}' with top_k={top_k}")
 
     qdrant_client = app_state["qdrant_client"]
@@ -102,23 +99,8 @@ def roblox_engine_api_docs(
         # Generate embedding for the query text
         query_embedding = embeddings_model.embed_query(text)
 
-        # Build the filter conditions for Qdrant
-        filter_conditions = []
-        if filters:
-            if filters.source:
-                filter_conditions.append(
-                    rest.FieldCondition(key="metadata.source", match=rest.MatchValue(value=filters.source))
-                )
-            if filters.class_name:
-                filter_conditions.append(
-                    rest.FieldCondition(key="metadata.class_name", match=rest.MatchValue(value=filters.class_name))
-                )
-            if filters.member_type:
-                filter_conditions.append(
-                    rest.FieldCondition(key="metadata.member_type", match=rest.MatchValue(value=filters.member_type))
-                )
-        
-        query_filter = rest.Filter(must=filter_conditions) if filter_conditions else None
+        # Build the filter conditions for Qdrant (currently no filters applied)
+        query_filter = None
 
         # Perform the search in Qdrant
         search_results = qdrant_client.search(
